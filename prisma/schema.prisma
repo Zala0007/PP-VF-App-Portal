@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Application {
+  applicationId        String   @id
+  applicationType      String
+  college              String?
+
+  name                 String
+  email                String
+  contactNo            String
+  educationQualifications String?
+  experienceEntries    String?
+  remark               String?
+
+  areaOfInterest       String?
+
+  department           String?
+  labLectureBoth       String?
+
+  preferredSubjects    String?
+  timeSlotText         String?
+  timeSlotDay          String?
+  timeSlotPeriod       String?
+
+  cvLink               String?
+  linkedinLink         String?
+  googleScholarLink    String?
+
+  reviewed             Boolean  @default(false)
+  dateTimeOfSubmit     DateTime @default(now())
+  createdAt            DateTime @default(now())
+}
+
+model Vacancy {
+  id                      Int      @id @default(autoincrement())
+  college                 String
+  department              String
+  professorInPractice     Int      @default(0)
+  visitingFaculty         Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model Resource {
+  id                      Int      @id @default(autoincrement())
+  title                   String
+  fileName                String
+  filePath                String
+  fileSize                Int
+  uploadedBy              String   @default("admin")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
