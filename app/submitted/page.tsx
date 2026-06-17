@@ -1,8 +1,9 @@
 import React from 'react'
 import prismaClient from '../../lib/prisma'
 
-export default async function Submitted({ searchParams }: { searchParams?: { id?: string } }) {
-  const applicationId = searchParams?.id
+export default async function Submitted({ searchParams }: { searchParams?: Promise<{ id?: string }> }) {
+  const params = await searchParams
+  const applicationId = params?.id
   let application: any = null
   if (applicationId) {
     try {

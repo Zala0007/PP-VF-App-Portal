@@ -11,11 +11,12 @@ export const runtime = 'nodejs';
 // GET: Fetch a specific resource
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const resource = await prisma.resource.findUnique({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     if (!resource) {
@@ -38,15 +39,16 @@ export async function GET(
 // PUT: Update resource (title or replace file)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const formData = await request.formData();
     const title = formData.get('title') as string;
     const file = formData.get('file') as File | null;
 
     const existingResource = await prisma.resource.findUnique({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     if (!existingResource) {
@@ -96,7 +98,7 @@ export async function PUT(
     }
 
     const resource = await prisma.resource.update({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
       data: updateData,
     });
 
@@ -113,11 +115,12 @@ export async function PUT(
 // DELETE: Delete a resource
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const resource = await prisma.resource.findUnique({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     if (!resource) {
@@ -135,7 +138,7 @@ export async function DELETE(
 
     // Delete from database
     await prisma.resource.delete({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     return NextResponse.json({ message: 'Resource deleted successfully' });
