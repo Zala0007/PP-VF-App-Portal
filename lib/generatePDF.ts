@@ -25,29 +25,29 @@ export async function generateApplicationPDF(application: any) {
   }
   
   // Header
-  drawText('Directorate of Technical Education', 16, true, width / 2 - 150)
+  drawText('L D College of Engineering', 16, true, width / 2 - 150)
   drawText('Education Department, Government of Gujarat', 12, false, width / 2 - 140)
   yPosition -= 10
-  drawText('Professor in Practice & Visiting Faculty Online Application Form', 11, true, width / 2 - 180)
+  drawText('Visiting Faculty Online Application Form', 11, true, width / 2 - 120)
   yPosition -= 5
   drawText(`Application ID: ${application.applicationId} | Submitted: ${new Date(application.dateTimeOfSubmit).toLocaleDateString('en-IN')}`, 9, false, leftMargin)
   
   yPosition -= 20
   
   // Basic Information
-  drawText('BASIC INFORMATION', 12, true)
+  drawText('BASIC INFORMATION', 16, true)
   yPosition -= 5
-  drawText(`Name: ${application.name}`, 10)
-  drawText(`Email: ${application.email}`, 10)
-  drawText(`Contact Number: ${application.contactNo}`, 10)
-  drawText(`Application Type: ${application.applicationType}`, 10)
-  if (application.college) drawText(`College: ${application.college}`, 10)
-  drawText(`Department: ${application.department || '—'}`, 10)
+  drawText(`Name: ${application.name}`, 14)
+  drawText(`Email: ${application.email}`, 14)
+  drawText(`Contact Number: ${application.contactNo}`, 14)
+  drawText(`Application Type: ${application.applicationType}`, 14)
+  if (application.college) drawText(`College: ${application.college}`, 14)
+  drawText(`Department: ${application.department || '—'}`, 14)
   
   yPosition -= 15
   
   // Education & Qualifications
-  drawText('EDUCATION & QUALIFICATIONS', 12, true)
+  drawText('EDUCATION & QUALIFICATIONS', 14, true)
   yPosition -= 5
   
   let educationData = []
@@ -63,10 +63,10 @@ export async function generateApplicationPDF(application: any) {
   
   if (educationData.length > 0) {
     educationData.forEach((edu: any, index: number) => {
-      drawText(`${edu.degree}`, 10, true)
-      drawText(`  ${edu.fromDate} - ${edu.toDate}`, 9)
-      drawText(`  Institution: ${edu.institution}`, 9)
-      if (edu.percentage) drawText(`  Percentage/CGPA: ${edu.percentage}`, 9)
+      drawText(`${edu.degree}`, 14, true)
+      drawText(`  ${edu.fromDate} - ${edu.toDate}`, 14)
+      drawText(`  Institution: ${edu.institution}`, 14)
+      if (edu.percentage) drawText(`  Percentage/CGPA: ${edu.percentage}`, 14)
       yPosition -= 5
     })
   } else {
@@ -76,7 +76,7 @@ export async function generateApplicationPDF(application: any) {
   yPosition -= 15
   
   // Professional Experience
-  drawText('PROFESSIONAL EXPERIENCE', 12, true)
+  drawText('PROFESSIONAL EXPERIENCE', 16, true)
   yPosition -= 5
   
   let experienceData = []
@@ -92,10 +92,10 @@ export async function generateApplicationPDF(application: any) {
   
   if (experienceData.length > 0) {
     experienceData.forEach((exp: any, index: number) => {
-      drawText(`${exp.position}`, 10, true)
-      drawText(`  ${exp.fromDate} - ${exp.toDate}`, 9)
-      drawText(`  Company/Organization: ${exp.company}`, 9)
-      if (exp.remark) drawText(`  Remark: ${exp.remark}`, 9)
+      drawText(`${exp.position}`, 14, true)
+      drawText(`  ${exp.fromDate} - ${exp.toDate}`, 14)
+      drawText(`  Company/Organization: ${exp.company}`, 14)
+      if (exp.remark) drawText(`  Remark: ${exp.remark}`, 14)
       yPosition -= 5
     })
   } else {
@@ -105,16 +105,16 @@ export async function generateApplicationPDF(application: any) {
   yPosition -= 15
   
   // Academic Preferences
-  drawText('ACADEMIC PREFERENCES', 12, true)
+  drawText('ACADEMIC PREFERENCES', 16, true)
   yPosition -= 5
-  if (application.areaOfInterest) drawText(`Area of Interest: ${application.areaOfInterest}`, 10)
-  if (application.preferredSubjects) drawText(`Preferred Subjects: ${application.preferredSubjects}`, 10)
-  if (application.labLectureBoth) drawText(`Mode: ${application.labLectureBoth}`, 10)
+  if (application.areaOfInterest) drawText(`Area of Interest: ${application.areaOfInterest}`, 14)
+  if (application.preferredSubjects) drawText(`Preferred Subjects: ${application.preferredSubjects}`, 14)
+  if (application.labLectureBoth) drawText(`Mode: ${application.labLectureBoth}`, 14)
   
   yPosition -= 15
   
   // Time Availability
-  drawText('TIME AVAILABILITY', 12, true)
+  drawText('TIME AVAILABILITY', 16, true)
   yPosition -= 5
   
   let timeSlotDay = []
@@ -130,52 +130,25 @@ export async function generateApplicationPDF(application: any) {
     console.error('Failed to parse time slot data:', e)
   }
   
-  if (timeSlotDay.length > 0) drawText(`Preferred Days: ${timeSlotDay.join(', ')}`, 10)
-  if (timeSlotPeriod.length > 0) drawText(`Preferred Period: ${timeSlotPeriod.join(', ')}`, 10)
-  if (application.timeSlotText) drawText(`Specific Time Slot: ${application.timeSlotText}`, 10)
+  if (timeSlotDay.length > 0) drawText(`Preferred Days: ${timeSlotDay.join(', ')}`, 14)
+  if (timeSlotPeriod.length > 0) drawText(`Preferred Period: ${timeSlotPeriod.join(', ')}`, 14)
+  if (application.timeSlotText) drawText(`Specific Time Slot: ${application.timeSlotText}`, 14)
   
   yPosition -= 15
   
   // Documents & Links
-  drawText('DOCUMENTS & LINKS', 12, true)
+  drawText('DOCUMENTS & LINKS', 16, true)
   yPosition -= 5
   
   const annotations: any[] = []
   
-  // CV/Resume Link
-  if (application.cvLink) {
-    drawText('CV/Resume: ', 9, true, leftMargin)
-    yPosition += lineHeight
-    
-    page.drawText(application.cvLink, {
-      x: leftMargin + 75,
-      y: yPosition,
-      size: 9,
-      font: font,
-      color: rgb(0, 0.3, 0.8),
-    })
-    
-    const linkWidth = font.widthOfTextAtSize(application.cvLink, 9)
-    const linkAnnotation = pdfDoc.context.obj({
-      Type: 'Annot',
-      Subtype: 'Link',
-      Rect: [leftMargin + 75, yPosition - 2, leftMargin + 75 + linkWidth, yPosition + 10],
-      Border: [0, 0, 0],
-      C: [0, 0, 1],
-      A: {
-        Type: 'Action',
-        S: 'URI',
-        URI: pdfDoc.context.obj(application.cvLink),
-      },
-    })
-    
-    annotations.push(pdfDoc.context.register(linkAnnotation))
-    yPosition -= lineHeight * 2
+  if (application.resumeFile) {
+    drawText('Resume: Uploaded and attached separately', 14)
   }
   
   // LinkedIn Link
   if (application.linkedinLink) {
-    drawText('LinkedIn Profile: ', 9, true, leftMargin)
+    drawText('LinkedIn Profile: ', 14, true, leftMargin)
     yPosition += lineHeight
     
     page.drawText(application.linkedinLink, {
@@ -206,7 +179,7 @@ export async function generateApplicationPDF(application: any) {
   
   // Google Scholar Link
   if (application.googleScholarLink) {
-    drawText('Google Scholar: ', 9, true, leftMargin)
+    drawText('Google Scholar: ', 14, true, leftMargin)
     yPosition += lineHeight
     
     page.drawText(application.googleScholarLink, {

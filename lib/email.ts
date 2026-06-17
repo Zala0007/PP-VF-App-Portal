@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer'
+import { existsSync } from 'fs'
+import { basename, join } from 'path'
 import { generateApplicationPDF } from './generatePDF'
-import { COLLEGE_PRINCIPAL_EMAILS } from './collegeEmails'
+import { COLLEGE_PRINCIPAL_EMAILS, DEPARTMENT_HOD_EMAILS } from './collegeEmails'
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -22,7 +24,7 @@ export async function sendApplicationReceivedEmail(
   applicationType: string
 ) {
   const mailOptions = {
-    from: `"Directorate of Technical Education" <${process.env.EMAIL_USER}>`,
+    from: `"L D College of Engineering" <${process.env.EMAIL_USER}>`,
     to: applicantEmail,
     subject: `Acknowledgement of Your Application – Post of ${applicationType}`,
     text: `Dear ${applicantName},
@@ -38,7 +40,7 @@ Your application will now undergo through our standard screening procedure as pe
 Thank you for your interest in joining our organization.
 
 Warm regards,
-Director of Technical Education`,
+L D College of Engineering`,
   }
 
   try {
@@ -81,12 +83,12 @@ export async function sendApplicationToPrincipal(
       : [applicationData.department]
 
   const mailOptions = {
-    from: `"Directorate of Technical Education" <${process.env.EMAIL_USER}>`,
+    from: `"L D College of Engineering" <${process.env.EMAIL_USER}>`,
     to: principalEmail,
     subject: `New ${applicationData.applicationType} Application - ${applicationData.name}`,
-    text: `Dear Sir,
+    text: `Dear Sir/Ma'am,
 
-A new application has been received for the post of ${applicationData.applicationType} at your institution.
+A new application has been received for your department.
 
 Application Details:
 - Application ID: ${applicationData.applicationId}
@@ -99,10 +101,10 @@ Application Details:
 
 Please find the complete application form attached as a PDF.
 
-This application is now available in the DTE portal for your review.
+This application is now available in the Visiting Faculty portal for your review.
 
 Warm regards,
-Directorate of Technical Education
+L D College of Engineering
 Government of Gujarat`,
     attachments: [
       {
@@ -118,6 +120,118 @@ Government of Gujarat`,
     console.log(`Application PDF sent to principal at ${principalEmail}`)
   } catch (error) {
     console.error('Error sending email to principal:', error)
+    throw error
+  }
+}
+
+function parseDepartments(value: unknown): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      }
+    } catch {
+      // Keep plain text department values as-is.
+    }
+
+    return value.trim() ? [value.trim()] : []
+  }
+
+  return []
+}
+
+function getUploadedResumeAttachment(resumeFile: unknown) {
+  if (typeof resumeFile !== 'string' || !resumeFile.trim()) {
+    return null
+  }
+
+  const normalizedResumePath = resumeFile.replace(/^\/+/, '')
+  const resumePath = join(process.cwd(), 'public', normalizedResumePath)
+
+  if (!existsSync(resumePath)) {
+    console.warn(`Resume file not found for email attachment: ${resumePath}`)
+    return null
+  }
+
+  return {
+    filename: basename(resumePath),
+    path: resumePath
+  }
+}
+
+export async function sendApplicationToDepartmentHods(applicationData: any) {
+  const departments = parseDepartments(applicationData.department)
+  const recipients = Array.from(
+    new Set(
+      departments
+        .map((department) => DEPARTMENT_HOD_EMAILS[department]?.trim())
+        .filter((email): email is string => Boolean(email))
+    )
+  )
+
+  if (recipients.length === 0) {
+    console.warn(`No HOD email configured for department(s): ${departments.join(', ') || 'None'}`)
+    return
+  }
+
+  let pdfBuffer: Buffer
+  try {
+    pdfBuffer = await generateApplicationPDF(applicationData)
+  } catch (error) {
+    console.error('Error generating PDF for HOD:', error)
+    throw error
+  }
+
+  const attachments: any[] = [
+    {
+      filename: `Application_${applicationData.applicationId}_${applicationData.name.replace(/\s+/g, '_')}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf',
+    },
+  ]
+  const resumeAttachment = getUploadedResumeAttachment(applicationData.resumeFile)
+  if (resumeAttachment) {
+    attachments.push(resumeAttachment)
+  }
+
+  const mailOptions = {
+    from: `"Directorate of Technical Education" <${process.env.EMAIL_USER}>`,
+    to: recipients,
+    subject: `New Visiting Faculty Application Received for Your Department - ${applicationData.name}`,
+    text: `Dear HOD,
+
+A new application has been received for your department.
+
+Application Details:
+- Application ID: ${applicationData.applicationId}
+- Applicant Name: ${applicationData.name}
+- Email: ${applicationData.email}
+- Contact: ${applicationData.contactNo}
+- Department(s): ${departments.join(', ')}
+- Area of Interest: ${applicationData.areaOfInterest || 'Not specified'}
+- Submitted: ${new Date(applicationData.dateTimeOfSubmit).toLocaleString('en-IN')}
+
+Please find the complete application form and uploaded resume attached.
+
+This application is also available in the HOD portal for review.
+
+Warm regards,
+Visiting Faculty Application Portal
+L.D. College of Engineering`,
+    attachments,
+  }
+
+  try {
+    await transporter.sendMail(mailOptions)
+    console.log(`Application PDF sent to HOD email(s): ${recipients.join(', ')}`)
+  } catch (error) {
+    console.error('Error sending email to HOD:', error)
     throw error
   }
 }

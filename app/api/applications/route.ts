@@ -1,15 +1,23 @@
 import prisma from '../../../lib/prisma'
 import { NextResponse } from 'next/server'
-import { sendApplicationReceivedEmail, sendApplicationToPrincipal } from '@/lib/email'
+import { sendApplicationReceivedEmail, sendApplicationToDepartmentHods } from '@/lib/email'
+import { applicationBelongsToDepartment, LDCE_COLLEGE_NAME, verifyAdminToken, verifyHodToken } from '@/lib/roleAuth'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     console.log('POST /api/applications body:', body)
+
+    if (!body.resumeFile) {
+      return NextResponse.json(
+        { error: 'Resume upload is required' },
+        { status: 400 }
+      )
+    }
     
     // Generate custom application ID
     const currentYear = new Date().getFullYear()
-    const typeCode = body.applicationType === 'Professor in Practice' ? 'PP' : 'VF'
+    const typeCode = 'VF'
     
     // Get count of applications for this year and type
     const yearStart = new Date(currentYear, 0, 1)
@@ -52,11 +60,11 @@ export async function POST(request: Request) {
       // Don't fail the application creation if email fails
     }
 
-    // Send application PDF to college principal
+    // Send application PDF to respective department HOD(s)
     try {
-      await sendApplicationToPrincipal(created)
+      await sendApplicationToDepartmentHods(created)
     } catch (emailError) {
-      console.error('Failed to send application to principal:', emailError)
+      console.error('Failed to send application to HOD:', emailError)
       // Don't fail the application creation if email fails
     }
 
@@ -68,17 +76,12 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  // protect listing with admin token
-  const token = request.headers.get('x-admin-token')
-  const validPasswords = [
-    process.env.ADMIN_PASSWORD_1,
-    process.env.ADMIN_PASSWORD_2,
-    process.env.ADMIN_PASSWORD_3,
-    process.env.ADMIN_PASSWORD_4,
-    process.env.ADMIN_PASSWORD_5
-  ].filter(Boolean)
-  
-  if (!token || !validPasswords.includes(token)) {
+  const adminToken = request.headers.get('x-admin-token')
+  const hodToken = request.headers.get('x-hod-token')
+  const isAdmin = verifyAdminToken(adminToken)
+  const hodCredential = verifyHodToken(hodToken)
+
+  if (!isAdmin && !hodCredential) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -87,7 +90,7 @@ export async function GET(request: Request) {
   const take = parseInt(url.searchParams.get('take') || '20')
 
   const skip = (page - 1) * take
-  const where: any = {}
+  const where: any = hodCredential ? { college: LDCE_COLLEGE_NAME } : {}
   const appType = url.searchParams.get('applicationType')
   if (appType) where.applicationType = appType
   const dept = url.searchParams.get('department')
@@ -95,10 +98,35 @@ export async function GET(request: Request) {
   const timeSlot = url.searchParams.get('timeSlotPeriod')
   if (timeSlot) where.timeSlotPeriod = timeSlot
 
+  if (hodCredential) {
+    const allItems = await prisma.application.findMany({
+      where,
+      orderBy: { createdAt: 'desc' }
+    })
+    const filteredItems = allItems.filter((application) =>
+      applicationBelongsToDepartment(application.department, hodCredential.department)
+    )
+
+    return NextResponse.json({
+      items: filteredItems.slice(skip, skip + take),
+      count: filteredItems.length,
+      page,
+      take,
+      role: 'hod',
+      department: hodCredential.department
+    })
+  }
+
   const [items, count] = await Promise.all([
     prisma.application.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
     prisma.application.count({ where })
   ])
 
-  return NextResponse.json({ items, count, page, take })
+  return NextResponse.json({
+    items,
+    count,
+    page,
+    take,
+    role: 'admin'
+  })
 }

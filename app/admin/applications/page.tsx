@@ -1,33 +1,39 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Eye, CheckCircle, XCircle, Calendar, Users, ArrowLeft, Search, Mail, Download } from 'lucide-react'
+import { Eye, CheckCircle, XCircle, Calendar, Users, ArrowLeft, Search, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { buildCandidateStatusEmailDraft, isCandidateStatus } from '@/lib/candidateStatusEmail'
 
 type AppRow = {
   applicationId: string
   name: string
   email?: string
-  applicationType: string
-  college?: string
-  department?: string
+  department?: string[] | string
   timeSlotPeriod?: string
   dateTimeOfSubmit?: string
   reviewed?: boolean
+  selectionStatus?: string
 }
+
+type ViewerRole = 'admin' | 'hod'
 
 export default function ApplicationsList() {
   const [items, setItems] = useState<AppRow[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterType, setFilterType] = useState('')
-  const [filterCollege, setFilterCollege] = useState('')
-  const [exportingExcel, setExportingExcel] = useState(false)
+  const [filterDepartment, setFilterDepartment] = useState('')
+  const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null)
 
   const fetchApplications = () => {
-    const token = sessionStorage.getItem('admin_token')
-    fetch('/api/applications?page=1&take=200', { headers: { 'x-admin-token': token || '' } })
+    const adminToken = sessionStorage.getItem('admin_token')
+    const hodToken = sessionStorage.getItem('hod_token')
+    const headers: Record<string, string> = adminToken
+      ? { 'x-admin-token': adminToken }
+      : { 'x-hod-token': hodToken || '' }
+
+    fetch('/api/applications?page=1&take=200', { headers })
       .then((r) => r.json())
       .then((json) => {
         setItems(json.items || [])
@@ -37,27 +43,49 @@ export default function ApplicationsList() {
 
   // Check if user is authenticated
   useEffect(() => {
-    const token = sessionStorage.getItem('admin_token')
-    if (!token) {
+    const adminToken = sessionStorage.getItem('admin_token')
+    const hodToken = sessionStorage.getItem('hod_token')
+
+    if (adminToken) {
+      setViewerRole('admin')
+      return
+    }
+
+    if (hodToken) {
+      setViewerRole('hod')
+      return
+    }
+
+    if (!adminToken && !hodToken) {
       window.location.href = '/admin'
     }
   }, [])
 
   useEffect(() => {
     fetchApplications()
+
+    const refreshApplications = () => fetchApplications()
+    window.addEventListener('focus', refreshApplications)
+    const intervalId = window.setInterval(refreshApplications, 15000)
+
+    return () => {
+      window.removeEventListener('focus', refreshApplications)
+      window.clearInterval(intervalId)
+    }
   }, [])
 
   const toggleReviewed = async (applicationId: string, currentStatus: boolean) => {
     setUpdating(applicationId)
-    const token = sessionStorage.getItem('admin_token')
+    const adminToken = sessionStorage.getItem('admin_token')
+    const hodToken = sessionStorage.getItem('hod_token')
+    const headers: Record<string, string> = adminToken
+      ? { 'Content-Type': 'application/json', 'x-admin-token': adminToken }
+      : { 'Content-Type': 'application/json', 'x-hod-token': hodToken || '' }
     
     try {
       const response = await fetch(`/api/applications/${applicationId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': token || ''
-        },
+        headers,
         body: JSON.stringify({ reviewed: !currentStatus })
       })
 
@@ -73,77 +101,79 @@ export default function ApplicationsList() {
     }
   }
 
-  const handleExportToExcel = async () => {
-    if (!filterCollege) {
-      alert('Please select a college first to export applications')
-      return
+  function parseDepartments(value?: string[] | string) {
+    if (!value) return []
+    if (Array.isArray(value)) return value
+
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === 'string')
+      }
+    } catch {
+      // Keep plain text department values as-is.
     }
 
-    setExportingExcel(true)
+    return [value]
+  }
+
+  const updateSelectionStatus = async (item: AppRow, selectionStatus: string) => {
+    if (!selectionStatus) return
+    if (!item.reviewed) return
+
+    const statusDepartment = viewerRole === 'hod'
+      ? sessionStorage.getItem('hod_department') || formatDepartment(item.department)
+      : formatDepartment(item.department)
+
+    const emailWindow = item.email && isCandidateStatus(selectionStatus)
+      ? window.open('', '_blank')
+      : null
+
+    setUpdating(item.applicationId)
+    const adminToken = sessionStorage.getItem('admin_token')
+    const hodToken = sessionStorage.getItem('hod_token')
+    const headers: Record<string, string> = adminToken
+      ? { 'Content-Type': 'application/json', 'x-admin-token': adminToken }
+      : { 'Content-Type': 'application/json', 'x-hod-token': hodToken || '' }
+
     try {
-      const response = await fetch('/api/export-applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ college: filterCollege })
+      const response = await fetch(`/api/applications/${item.applicationId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ selectionStatus })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to generate Excel file')
-      }
+      if (response.ok) {
+        setItems(items.map(currentItem =>
+          currentItem.applicationId === item.applicationId ? { ...currentItem, selectionStatus } : currentItem
+        ))
 
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      const safeCollegeName = filterCollege.replace(/[^a-zA-Z0-9]/g, '_')
-      a.download = `Applications_${safeCollegeName}_${new Date().toISOString().split('T')[0]}.xlsx`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+        if (emailWindow && item.email && isCandidateStatus(selectionStatus)) {
+          const draft = buildCandidateStatusEmailDraft({
+            name: item.name,
+            applicationId: item.applicationId,
+            email: item.email,
+            department: statusDepartment,
+            status: selectionStatus
+          })
+          emailWindow.location.href = draft.gmailComposeUrl
+        }
+      } else {
+        const result = await response.json().catch(() => null)
+        emailWindow?.close()
+        alert(result?.error || 'Failed to update selection status')
+      }
     } catch (error) {
-      console.error('Error exporting to Excel:', error)
-      alert('Failed to export applications to Excel')
+      emailWindow?.close()
+      console.error('Error updating selection status:', error)
     } finally {
-      setExportingExcel(false)
+      setUpdating(null)
     }
   }
 
-  const handleEmailExcel = async () => {
-    if (!filterCollege) {
-      alert('Please select a college first to export applications')
-      return
-    }
-
-    if (!confirm(`Send Excel file with applications to the principal of ${filterCollege}?`)) {
-      return
-    }
-
-    setExportingExcel(true)
-    try {
-      const response = await fetch('/api/email-applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ college: filterCollege })
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to send email')
-      }
-
-      alert(`Email sent successfully to ${result.recipientEmail} with ${result.applicationCount} applications!`)
-    } catch (error: any) {
-      console.error('Error sending email:', error)
-      alert(error.message || 'Failed to send email with Excel attachment')
-    } finally {
-      setExportingExcel(false)
-    }
+  function formatDepartment(value?: string[] | string) {
+    const departments = parseDepartments(value)
+    return departments.length > 0 ? departments.join(', ') : '—'
   }
 
   if (loading) {
@@ -156,39 +186,36 @@ export default function ApplicationsList() {
 
   const reviewedCount = items.filter(item => item.reviewed).length
   const pendingCount = items.length - reviewedCount
-  const professorInPracticeCount = items.filter(item => item.applicationType === 'Professor in Practice').length
-  const visitingFacultyCount = items.filter(item => item.applicationType === 'Visiting Faculty').length
-
   // Filter items based on search query and filters
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (item.applicationId && item.applicationId.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesType = !filterType || item.applicationType === filterType
-    const matchesCollege = !filterCollege || item.college === filterCollege
-    return matchesSearch && matchesType && matchesCollege
+    const matchesDepartment = !filterDepartment || parseDepartments(item.department).includes(filterDepartment)
+    return matchesSearch && matchesDepartment
   })
 
   // Get unique values for filter dropdowns
-  const applicationTypes = Array.from(new Set(items.map(item => item.applicationType)))
-  const colleges = Array.from(new Set(items.map(item => item.college).filter(Boolean)))
+  const departments = Array.from(new Set(items.flatMap(item => parseDepartments(item.department)))).sort()
 
   return (
     <div className="gradient-bg min-h-screen">
       <div className="container-custom py-8">
       {/* Back and Email Management Buttons */}
       <div className="mb-6 flex justify-between items-center">
-        <Link href="/admin">
+        <Link href={viewerRole === 'hod' ? '/hod' : '/admin'}>
           <button className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
             <ArrowLeft className="w-5 h-5" />
-            Back to Admin Dashboard
+            Back to {viewerRole === 'hod' ? 'HOD Dashboard' : 'Admin Dashboard'}
           </button>
         </Link>
-        <Link href="/admin/principal-emails">
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Mail className="w-5 h-5" />
-            Manage Principal Emails
-          </button>
-        </Link>
+        {viewerRole === 'admin' && (
+          <Link href="/admin/principal-emails">
+            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <Mail className="w-5 h-5" />
+              Manage Principal Emails
+            </button>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
@@ -252,54 +279,20 @@ export default function ApplicationsList() {
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">All Applications</h2>
-            {filterCollege && (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleExportToExcel}
-                  disabled={exportingExcel}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
-                >
-                  <Download className="w-5 h-5" />
-                  {exportingExcel ? 'Generating...' : 'Download Excel'}
-                </button>
-                <button
-                  onClick={handleEmailExcel}
-                  disabled={exportingExcel}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
-                >
-                  <Mail className="w-5 h-5" />
-                  {exportingExcel ? 'Sending...' : 'Send Email with Excel'}
-                </button>
-              </div>
-            )}
           </div>
           
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Application Type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
               <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 transition-all outline-none"
               >
-                <option value="">All Types</option>
-                {applicationTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">College</label>
-              <select
-                value={filterCollege}
-                onChange={(e) => setFilterCollege(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 transition-all outline-none"
-              >
-                <option value="">All Colleges</option>
-                {colleges.map(college => (
-                  <option key={college} value={college}>{college}</option>
+                <option value="">All Departments</option>
+                {departments.map(department => (
+                  <option key={department} value={department}>{department}</option>
                 ))}
               </select>
             </div>
@@ -325,8 +318,6 @@ export default function ApplicationsList() {
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Application ID</th>
                 <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Name</th>
-                <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Type</th>
-                <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">College</th>
                 <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Department</th>
                 <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Submitted</th>
                 <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
@@ -336,7 +327,7 @@ export default function ApplicationsList() {
             <tbody>
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="p-8 text-center text-gray-500 dark:text-gray-400">
                     No applications found matching "{searchQuery}"
                   </td>
                 </tr>
@@ -353,48 +344,47 @@ export default function ApplicationsList() {
                     {item.applicationId}
                   </td>
                   <td className="p-4 font-medium">{item.name}</td>
-                  <td className="p-4">
-                    <span className="px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded text-sm">
-                      {item.applicationType}
-                    </span>
-                  </td>
-                  <td className="p-4 text-gray-600 dark:text-gray-400 text-sm">
-                    {item.college || '—'}
-                  </td>
                   <td className="p-4 text-gray-600 dark:text-gray-400">
-                    {item.department ? (
-                      Array.isArray(item.department) 
-                        ? item.department.join(', ')
-                        : typeof item.department === 'string' && item.department.startsWith('[')
-                          ? JSON.parse(item.department).join(', ')
-                          : item.department
-                    ) : '—'}
+                    {formatDepartment(item.department)}
                   </td>
                   <td className="p-4 text-sm text-gray-600 dark:text-gray-400">
                     {item.dateTimeOfSubmit ? new Date(item.dateTimeOfSubmit).toLocaleDateString('en-IN') : '—'}
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => toggleReviewed(item.applicationId, item.reviewed || false)}
-                      disabled={updating === item.applicationId}
-                      className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium transition-all ${
-                        item.reviewed
-                          ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
-                          : 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800'
-                      } ${updating === item.applicationId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {updating === item.applicationId ? (
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : item.reviewed ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        <XCircle className="w-4 h-4" />
-                      )}
-                      {item.reviewed ? 'Reviewed' : 'Pending'}
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => toggleReviewed(item.applicationId, item.reviewed || false)}
+                        disabled={updating === item.applicationId}
+                        className={`flex w-fit items-center gap-2 px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                          item.reviewed
+                            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
+                            : 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800'
+                        } ${updating === item.applicationId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {updating === item.applicationId ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : item.reviewed ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : (
+                          <XCircle className="w-4 h-4" />
+                        )}
+                        {item.reviewed ? 'Reviewed' : 'Pending'}
+                      </button>
+                      <span className={`w-fit px-3 py-1 rounded-full text-xs font-semibold ${
+                        item.selectionStatus === 'Shortlisted for Interview'
+                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                          : item.selectionStatus === 'Selected'
+                            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                          : item.selectionStatus === 'Rejected'
+                            ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                      }`}>
+                        {item.selectionStatus || 'Pending'}
+                      </span>
+                    </div>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <Link
                         href={`/admin/applications/${item.applicationId}`}
                         className="flex items-center gap-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
@@ -413,6 +403,25 @@ export default function ApplicationsList() {
                           <Mail className="w-5 h-5" />
                         </a>
                       )}
+                      <select
+                        value={
+                          item.selectionStatus === 'Shortlisted for Interview' ||
+                          item.selectionStatus === 'Rejected' ||
+                          item.selectionStatus === 'Selected'
+                            ? item.selectionStatus
+                            : ''
+                        }
+                        onChange={(event) => updateSelectionStatus(item, event.target.value)}
+                        disabled={updating === item.applicationId || !item.reviewed}
+                        className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-gray-100 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label={`Update selection status for ${item.name}`}
+                        title={item.reviewed ? 'Update selection status' : 'Mark as reviewed to update selection status'}
+                      >
+                        <option value="">Select status</option>
+                        <option value="Shortlisted for Interview">Shortlisted for Interview</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Selected">Selected</option>
+                      </select>
                     </div>
                   </td>
                 </motion.tr>

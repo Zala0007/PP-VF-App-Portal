@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         'Preferred Days': Array.isArray(timeSlotDay) ? timeSlotDay.join(', ') : 'N/A',
         'Preferred Period': Array.isArray(timeSlotPeriod) ? timeSlotPeriod.join(', ') : 'N/A',
         'Specific Time Slot': app.timeSlotText || 'N/A',
-        'CV/Resume Link': app.cvLink || 'N/A',
+        'Resume File': app.resumeFile || 'N/A',
         'LinkedIn Profile': app.linkedinLink || 'N/A',
         'Google Scholar': app.googleScholarLink || 'N/A',
         'Remark': app.remark || 'N/A',
@@ -152,7 +152,6 @@ export async function POST(request: NextRequest) {
 <p><strong>Summary:</strong></p>
 <ul>
   <li>Total Applications: ${applications.length}</li>
-  <li>Professor in Practice: ${applications.filter(a => a.applicationType === 'Professor in Practice').length}</li>
   <li>Visiting Faculty: ${applications.filter(a => a.applicationType === 'Visiting Faculty').length}</li>
   <li>Date Generated: ${new Date().toLocaleString('en-IN')}</li>
 </ul>

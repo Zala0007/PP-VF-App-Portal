@@ -1,9 +1,0 @@
--- CreateTable
-CREATE TABLE "Vacancy" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "department" TEXT NOT NULL,
-    "professorInPractice" INTEGER NOT NULL DEFAULT 0,
-    "visitingFaculty" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);

@@ -6,6 +6,7 @@ import Image from 'next/image'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
+  const showVacancy = false
 
   return (
     <footer className="bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 mt-auto">
@@ -71,13 +72,15 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/vacancy" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                  Vacancy
-                </Link>
+                {showVacancy && (
+                  <Link href="/vacancy" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    Vacancy
+                  </Link>
+                )}
               </li>
               <li>
                 <Link href="/admin" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                  Admin Portal
+                  Admin Login
                 </Link>
               </li>
             </ul>
@@ -131,7 +134,7 @@ export default function Footer() {
                 href="https://www.instagram.com/ldceofficial/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-pink-100 dark:hover:bg-pink-900/30 flex items-center justify-center transition-all hover:scale-110"
+                className="w-10 h-10 rounded-lg bg-pink-50 dark:bg-pink-950/40 border border-pink-100 dark:border-pink-800/50 hover:bg-pink-100 dark:hover:bg-pink-900/60 flex items-center justify-center transition-all hover:scale-110"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5 text-[#E4405F]" />
@@ -158,7 +161,13 @@ export default function Footer() {
               </a>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-              Developed by <span className="text-orange-600 dark:text-orange-400 font-medium">Vishvarajsinh Zala</span>
+              Developed by{' '}
+              <Link
+                href="/developer"
+                className="text-orange-600 dark:text-orange-400 font-medium hover:text-orange-700 dark:hover:text-orange-300 transition-colors underline-offset-4 hover:underline"
+              >
+                Vishvarajsinh Zala
+              </Link>
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">IT LDCE'27</p>
             <div className="flex items-center gap-2">
@@ -175,7 +184,7 @@ export default function Footer() {
                 href="https://www.instagram.com/vishvarajsinh_zala_007" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-7 h-7 rounded bg-gray-200 dark:bg-gray-700 hover:bg-pink-100 dark:hover:bg-pink-900/30 flex items-center justify-center transition-all hover:scale-110"
+                className="w-7 h-7 rounded bg-pink-50 dark:bg-pink-950/40 border border-pink-100 dark:border-pink-800/50 hover:bg-pink-100 dark:hover:bg-pink-900/60 flex items-center justify-center transition-all hover:scale-110"
                 aria-label="Designer Instagram"
               >
                 <Instagram className="w-3.5 h-3.5 text-[#E4405F]" />

@@ -33,7 +33,6 @@ export async function POST(request: Request) {
       data: {
         college: body.college,
         department: body.department,
-        professorInPractice: body.professorInPractice || 0,
         visitingFaculty: body.visitingFaculty || 0
       }
     })

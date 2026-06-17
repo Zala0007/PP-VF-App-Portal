@@ -1,6 +1,6 @@
-# PP-VF Application Portal
+# Visiting Faculty Application Portal
 
-A comprehensive web application for **Professor in Practice (PIP)** and **Visiting Faculty (VF)** recruitment across Gujarat Government Engineering Colleges. This portal streamlines the entire recruitment process from application submission to administrative review and vacancy management.
+A comprehensive web application for **Visiting Faculty (VF)** recruitment across Gujarat Government Engineering Colleges. This portal streamlines the entire recruitment process from application submission to administrative review and vacancy management.
 
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
@@ -13,7 +13,7 @@ A comprehensive web application for **Professor in Practice (PIP)** and **Visiti
 
 ### For Applicants
 - **Easy Application Process** - Multi-step form with intuitive UI
-- **Multiple Position Types** - Apply for Professor in Practice or Visiting Faculty
+- **Visiting Faculty Applications** - Apply for Visiting Faculty positions
 - **16 Government Colleges** - Select from all Gujarat government engineering colleges
 - **Department Selection** - College-specific department options
 - **Flexible Scheduling** - Multi-select days and time periods
@@ -97,8 +97,8 @@ A comprehensive web application for **Professor in Practice (PIP)** and **Visiti
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Zala0007/PP-VF-App-Portal.git
-   cd PP-VF-App-Portal
+   git clone https://github.com/Zala0007/Visiting-Faculty-LDCE.git
+   cd Visiting-Faculty-LDCE
    ```
 
 2. **Install dependencies**
@@ -169,7 +169,7 @@ Stores faculty applications with:
 Department-wise vacancy tracking:
 - College name
 - Department name
-- Professor in Practice count
+- Visiting Faculty count
 - Visiting Faculty count
 
 ### Resource

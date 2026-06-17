@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Briefcase, Users, GraduationCap, Building2, School } from 'lucide-react'
+import { Briefcase, Users, Building2, School } from 'lucide-react'
 import Image from 'next/image'
 import { COLLEGE_LOGOS } from '@/lib/colleges'
 
@@ -10,11 +10,11 @@ type Vacancy = {
   id: number
   college: string
   department: string
-  professorInPractice: number
   visitingFaculty: number
 }
 
 export default function VacancyPage() {
+  const showVacancy = false
   const [vacancies, setVacancies] = useState<Vacancy[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -24,6 +24,10 @@ export default function VacancyPage() {
       .then((data) => setVacancies(data.vacancies || []))
       .finally(() => setLoading(false))
   }, [])
+
+  if (!showVacancy) {
+    return null
+  }
 
   if (loading) {
     return (
@@ -42,7 +46,6 @@ export default function VacancyPage() {
     return acc
   }, {} as Record<string, Vacancy[]>)
 
-  const totalProfessor = vacancies.reduce((sum, v) => sum + v.professorInPractice, 0)
   const totalVisiting = vacancies.reduce((sum, v) => sum + v.visitingFaculty, 0)
   const totalColleges = Object.keys(vacanciesByCollege).length
 
@@ -59,12 +62,12 @@ export default function VacancyPage() {
             Current Vacancies
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Gujarat's Government Engineering Colleges - Professor in Practice & Visiting Faculty Openings
+            Gujarat's Government Engineering Colleges - Visiting Faculty Openings
           </p>
         </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -103,23 +106,6 @@ export default function VacancyPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="card bg-gradient-to-br from-accent-50 to-accent-100 dark:from-accent-900/20 dark:to-accent-800/20 border-accent-200 dark:border-accent-800"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-accent-600 rounded-xl">
-                <GraduationCap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Professor in Practice</p>
-                <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">{totalProfessor}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
             className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800"
           >
             <div className="flex items-center gap-4">
@@ -148,9 +134,6 @@ export default function VacancyPage() {
         ) : (
           <div className="space-y-8">
             {Object.entries(vacanciesByCollege).map(([college, collegeVacancies], collegeIndex) => {
-              const collegeProfessor = collegeVacancies.reduce((sum, v) => sum + v.professorInPractice, 0)
-              const collegeVisiting = collegeVacancies.reduce((sum, v) => sum + v.visitingFaculty, 0)
-              
               return (
                 <motion.div
                   key={college}
@@ -183,7 +166,6 @@ export default function VacancyPage() {
                       <thead>
                         <tr className="border-b-2 border-gray-200 dark:border-gray-700">
                           <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Department</th>
-                          <th className="text-center p-4 font-semibold text-gray-700 dark:text-gray-300">Professor in Practice</th>
                           <th className="text-center p-4 font-semibold text-gray-700 dark:text-gray-300">Visiting Faculty</th>
                         </tr>
                       </thead>
@@ -197,11 +179,6 @@ export default function VacancyPage() {
                             className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                           >
                             <td className="p-4 font-medium text-gray-900 dark:text-gray-100">{vacancy.department}</td>
-                            <td className="p-4 text-center">
-                              <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-accent-100 dark:bg-accent-900 text-accent-700 dark:text-accent-300 font-semibold">
-                                {vacancy.professorInPractice}
-                              </span>
-                            </td>
                             <td className="p-4 text-center">
                               <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 font-semibold">
                                 {vacancy.visitingFaculty}

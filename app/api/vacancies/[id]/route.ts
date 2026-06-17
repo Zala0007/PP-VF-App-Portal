@@ -1,7 +1,7 @@
 import prisma from '../../../../lib/prisma'
 import { NextResponse } from 'next/server'
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const token = request.headers.get('x-admin-token')
   const validPasswords = [
     process.env.ADMIN_PASSWORD_1,
@@ -16,7 +16,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   try {
-    const id = parseInt(params.id)
+    const { id: vacancyId } = await context.params
+    const id = parseInt(vacancyId)
     const body = await request.json()
     
     const vacancy = await prisma.vacancy.update({
@@ -24,7 +25,6 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       data: {
         college: body.college,
         department: body.department,
-        professorInPractice: body.professorInPractice,
         visitingFaculty: body.visitingFaculty
       }
     })
@@ -36,7 +36,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   const token = request.headers.get('x-admin-token')
   const validPasswords = [
     process.env.ADMIN_PASSWORD_1,
@@ -51,7 +51,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
 
   try {
-    const id = parseInt(params.id)
+    const { id: vacancyId } = await context.params
+    const id = parseInt(vacancyId)
     await prisma.vacancy.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (err) {

@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         'Preferred Days': Array.isArray(timeSlotDay) ? timeSlotDay.join(', ') : 'N/A',
         'Preferred Period': Array.isArray(timeSlotPeriod) ? timeSlotPeriod.join(', ') : 'N/A',
         'Specific Time Slot': app.timeSlotText || 'N/A',
-        'CV/Resume Link': app.cvLink || 'N/A',
+        'Resume File': app.resumeFile || 'N/A',
         'LinkedIn Profile': app.linkedinLink || 'N/A',
         'Google Scholar': app.googleScholarLink || 'N/A',
         'Remark': app.remark || 'N/A',
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       { wch: 20 }, // Days
       { wch: 20 }, // Period
       { wch: 20 }, // Time Slot
-      { wch: 40 }, // CV Link
+      { wch: 40 }, // Resume File
       { wch: 40 }, // LinkedIn
       { wch: 40 }, // Scholar
       { wch: 20 }, // Remark

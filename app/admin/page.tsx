@@ -2,23 +2,26 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Lock, LogIn, FileText, Users, Clock, CheckCircle, Eye, LogOut, Briefcase, Building2, FileUp } from 'lucide-react'
+import { Lock, LogIn, FileText, Users, Clock, CheckCircle, Eye, LogOut, Building2, FileUp, FileDown, XCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function AdminIndex() {
+  const router = useRouter()
   const [authenticated, setAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [exportingSelected, setExportingSelected] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
     approved: 0,
     active: 0,
-    professorInPractice: 0,
+    selected: 0,
+    rejected: 0,
     visitingFaculty: 0,
     totalColleges: 0,
-    totalDepartments: 0
   })
 
   useEffect(() => {
@@ -26,8 +29,31 @@ export default function AdminIndex() {
     if (t) {
       setAuthenticated(true)
       fetchStats(t)
+      return
     }
-  }, [])
+
+    const hodToken = sessionStorage.getItem('hod_token')
+    if (hodToken) {
+      router.push('/hod')
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (!authenticated) return
+
+    const refreshStats = () => {
+      const token = sessionStorage.getItem('admin_token')
+      if (token) fetchStats(token)
+    }
+
+    window.addEventListener('focus', refreshStats)
+    const intervalId = window.setInterval(refreshStats, 15000)
+
+    return () => {
+      window.removeEventListener('focus', refreshStats)
+      window.clearInterval(intervalId)
+    }
+  }, [authenticated])
 
   async function fetchStats(token: string) {
     try {
@@ -40,10 +66,8 @@ export default function AdminIndex() {
         const data = await appsRes.json()
         const applications = data.items || []
         
-        let totalPIP = 0
         let totalVF = 0
         let colleges = 0
-        let departments = 0
         
         if (vacanciesRes.ok) {
           const vacanciesData = await vacanciesRes.json()
@@ -51,15 +75,13 @@ export default function AdminIndex() {
           
           console.log('Vacancies data:', vacancies)
           
-          totalPIP = vacancies.reduce((sum: number, v: any) => sum + (v.professorInPractice || 0), 0)
           totalVF = vacancies.reduce((sum: number, v: any) => sum + (v.visitingFaculty || 0), 0)
           
           // Count unique colleges
           const uniqueColleges = new Set(vacancies.map((v: any) => v.college))
           colleges = uniqueColleges.size
-          departments = vacancies.length
           
-          console.log('Total PIP:', totalPIP, 'Total VF:', totalVF)
+          console.log('Total VF:', totalVF)
         }
         
         setStats({
@@ -67,10 +89,10 @@ export default function AdminIndex() {
           pending: applications.filter((app: any) => !app.reviewed).length,
           approved: applications.filter((app: any) => app.reviewed).length,
           active: applications.filter((app: any) => app.reviewed).length,
-          professorInPractice: totalPIP,
+          selected: applications.filter((app: any) => app.selectionStatus === 'Selected').length,
+          rejected: applications.filter((app: any) => app.selectionStatus === 'Rejected').length,
           visitingFaculty: totalVF,
           totalColleges: colleges,
-          totalDepartments: departments
         })
       }
     } catch (err) {
@@ -78,27 +100,53 @@ export default function AdminIndex() {
     }
   }
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    
-    const validPasswords = (process.env.NEXT_PUBLIC_ADMIN_PASSWORDS || 'changeme').split(',')
-    
-    setTimeout(() => {
-      if (validPasswords.includes(password)) {
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Invalid password. Please try again.')
+      }
+
+      if (result.role === 'admin') {
+        sessionStorage.removeItem('hod_token')
+        sessionStorage.removeItem('hod_department')
         sessionStorage.setItem('admin_token', password)
         setAuthenticated(true)
         fetchStats(password)
-      } else {
-        setError('Invalid password. Please try again.')
+        return
       }
+
+      if (result.role === 'hod') {
+        sessionStorage.removeItem('admin_token')
+        sessionStorage.setItem('hod_token', password)
+        sessionStorage.setItem('hod_department', result.department)
+        router.push('/hod')
+        return
+      }
+
+      throw new Error('Invalid password. Please try again.')
+    } catch (err: any) {
+      setError(err.message || 'Invalid password. Please try again.')
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
 
   function handleLogout() {
     sessionStorage.removeItem('admin_token')
+    sessionStorage.removeItem('hod_token')
+    sessionStorage.removeItem('hod_department')
     setAuthenticated(false)
     setPassword('')
     setStats({
@@ -106,11 +154,47 @@ export default function AdminIndex() {
       pending: 0,
       approved: 0,
       active: 0,
-      professorInPractice: 0,
+      selected: 0,
+      rejected: 0,
       visitingFaculty: 0,
       totalColleges: 0,
-      totalDepartments: 0
     })
+  }
+
+  async function handleDownloadSelectedCandidates() {
+    const token = sessionStorage.getItem('admin_token')
+
+    if (!token) {
+      setAuthenticated(false)
+      return
+    }
+
+    setExportingSelected(true)
+
+    try {
+      const response = await fetch('/api/export-selected-candidates', {
+        headers: { 'x-admin-token': token }
+      })
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null)
+        throw new Error(result?.error || 'Failed to download selected candidates')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Selected_Candidates_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(link)
+    } catch (err: any) {
+      alert(err.message || 'Failed to download selected candidates')
+    } finally {
+      setExportingSelected(false)
+    }
   }
 
   if (!authenticated) {
@@ -130,7 +214,7 @@ export default function AdminIndex() {
                 Admin Login
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                Enter your password to access the admin dashboard
+                Enter your password to access the admin or HOD dashboard
               </p>
             </div>
 
@@ -138,6 +222,7 @@ export default function AdminIndex() {
               <div>
                 <label className="label-field">Password</label>
                 <input
+                  suppressHydrationWarning
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-field"
@@ -153,6 +238,7 @@ export default function AdminIndex() {
               </div>
 
               <motion.button
+                suppressHydrationWarning
                 type="submit"
                 disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.02 }}
@@ -175,14 +261,19 @@ export default function AdminIndex() {
     )
   }
 
+  const showVacancy = false
+
   const statsData = [
     { icon: FileText, label: 'Total Applications', value: stats.total.toString(), color: 'from-blue-500 to-blue-600' },
     { icon: Clock, label: 'Pending Review', value: stats.pending.toString(), color: 'from-amber-500 to-amber-600' },
     { icon: CheckCircle, label: 'Reviewed', value: stats.approved.toString(), color: 'from-green-500 to-green-600' },
-    { icon: Building2, label: 'Colleges', value: stats.totalColleges.toString(), color: 'from-purple-500 to-purple-600' },
-    { icon: Briefcase, label: 'Departments', value: stats.totalDepartments.toString(), color: 'from-indigo-500 to-indigo-600' },
-    { icon: Users, label: 'Professor in Practice', value: stats.professorInPractice.toString(), color: 'from-orange-500 to-orange-600' },
-    { icon: Users, label: 'Visiting Faculty', value: stats.visitingFaculty.toString(), color: 'from-pink-500 to-pink-600' }
+    { icon: Users, label: 'Selected', value: stats.selected.toString(), color: 'from-emerald-500 to-emerald-600' },
+    { icon: XCircle, label: 'Rejected', value: stats.rejected.toString(), color: 'from-red-500 to-red-600' },
+    ...(showVacancy
+      ? [
+          { icon: Users, label: 'Visiting Faculty', value: stats.visitingFaculty.toString(), color: 'from-pink-500 to-pink-600' }
+        ]
+      : [])
   ]
 
   const quickLinks = [
@@ -192,13 +283,6 @@ export default function AdminIndex() {
       description: 'Browse and manage all submitted applications',
       icon: Eye,
       color: 'from-primary-500 to-accent-500'
-    },
-    { 
-      title: 'Manage Vacancies', 
-      href: '/admin/vacancy', 
-      description: 'Update department-wise vacancy information',
-      icon: Briefcase,
-      color: 'from-green-500 to-emerald-500'
     },
     { 
       title: 'Manage Colleges & Departments', 
@@ -329,6 +413,32 @@ export default function AdminIndex() {
                   </Link>
                 </motion.div>
               ))}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + quickLinks.length * 0.1 }}
+              >
+                <button
+                  type="button"
+                  onClick={handleDownloadSelectedCandidates}
+                  disabled={exportingSelected}
+                  className="card card-hover group w-full text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg group-hover:shadow-glow transition-all duration-300">
+                      <FileDown className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
+                        {exportingSelected ? 'Preparing Download...' : 'Download Selected Candidates'}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Export selected candidates from all departments
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </motion.div>
             </div>
           </div>
         </motion.div>

@@ -29,15 +29,15 @@ const features = [
 ]
 
 const stats = [
-  { value: '16', label: 'Engineering Colleges' },
-  { value: '50,000+', label: 'Students to Impact' },
-  { value: '150+', label: 'Departments Across Gujarat' },
-  { value: '2,500+', label: 'Faculty Community' },
-  { value: '25+', label: 'Engineering Disciplines' },
-  { value: '10,000+', label: 'Annual Graduates' },
-  { value: '1,000+', label: 'Research Publications' },
-  { value: '5,000+', label: 'Alumni Network (yearly)' },
-  { value: '50+', label: 'Industry Partnerships' }
+  { value: '1948', label: 'Established' },
+  { value: '16', label: 'UG Programs' },
+  { value: '19', label: 'PG Programs' },
+  { value: '250+' , label:'Faculty'},
+  { value: '7,000+', label: 'Undergraduate Students' },
+  { value: '2000+', label: 'Placements in past 2 year' },
+  { value: '40,000+', label:'Alumni Network' },
+  { value: '4,300+', label: 'Placement Offers (last 5 years)' },
+  { value: '600+', label: 'Companies Visited (last 5 years)' }
 ]
 
 const container = {
@@ -82,6 +82,8 @@ function CountUp({ end, duration = 2 }: { end: number; duration?: number }) {
 }
 
 export default function HomePage() {
+  const showVacancy = false
+
   const scrollToFeatures = () => {
     const featuresSection = document.getElementById('features')
     if (featuresSection) {
@@ -117,11 +119,11 @@ export default function HomePage() {
           </motion.div>
 
           <h2 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary-600 via-accent-600 to-primary-600 dark:from-primary-400 dark:via-accent-400 dark:to-primary-400 bg-clip-text text-transparent leading-tight">
-            Professor in Practise & Visiting Faculty - Application Portal
+            Visiting Faculty - Application Portal
           </h2>
           
           <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 mb-8 text-balance">
-            Join Government Engineering Colleges as a Professor in Practice or Visiting Faculty and Shape the Future of Engineering Education
+            Join L.D. College of Engineering as a Visiting Faculty and Shape the Future of Engineering Education
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -136,17 +138,19 @@ export default function HomePage() {
                 <span className="absolute bottom-0 left-0 w-0 h-full bg-black/20 transition-all duration-700 ease-out group-hover:w-full rounded-xl -z-0"></span>
               </motion.button>
             </Link>
-            <Link href="/vacancy">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative btn-primary text-lg px-8 py-4 w-full sm:w-auto overflow-hidden group"
-              >
-                <span className="relative z-10">Vacancies</span>
-                <ArrowRight className="w-5 h-5 relative z-10" />
-                <span className="absolute bottom-0 left-0 w-0 h-full bg-black/20 transition-all duration-700 ease-out group-hover:w-full rounded-xl -z-0"></span>
-              </motion.button>
-            </Link>
+            {showVacancy && (
+              <Link href="/vacancy">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative btn-primary text-lg px-8 py-4 w-full sm:w-auto overflow-hidden group"
+                >
+                  <span className="relative z-10">Vacancies</span>
+                  <ArrowRight className="w-5 h-5 relative z-10" />
+                  <span className="absolute bottom-0 left-0 w-0 h-full bg-black/20 transition-all duration-700 ease-out group-hover:w-full rounded-xl -z-0"></span>
+                </motion.button>
+              </Link>
+            )}
           </div>
 
           <div className="mt-4 flex justify-center">
@@ -169,7 +173,6 @@ export default function HomePage() {
           transition={{ delay: 0.4, duration: 0.8 }}
           className="mt-32"
         >
-          {/* First row - 4 columns */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
             {stats.slice(0, 4).map((stat, index) => (
               <motion.div
@@ -180,7 +183,7 @@ export default function HomePage() {
                 whileHover={{ y: -8, scale: 1.05 }}
                 className="relative group"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-600 to-amber-600 rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
                 <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border-2 border-gray-100 dark:border-gray-700 group-hover:border-orange-300 dark:group-hover:border-orange-600 transition-all duration-300 text-center">
                   <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent mb-3">
                     {!isNaN(parseInt(stat.value.replace(/[+,]/g, ''))) ? (
@@ -199,8 +202,7 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
-          
-          {/* Second row - 3 columns centered */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-6">
             {stats.slice(4, 7).map((stat, index) => (
               <motion.div
@@ -231,7 +233,6 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Third row - 2 columns centered */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             {stats.slice(7, 9).map((stat, index) => (
               <motion.div
@@ -347,17 +348,17 @@ export default function HomePage() {
                 },
                 {
                   step: 2,
-                  title: 'Specify your College, Departments, Preferred Subjects and Time Slots',
+                  title: 'Specify your Departments, Preferred Subjects and Time Slots',
                   align: 'right'
                 },
                 {
                   step: 3,
-                  title: 'Submit your CV/Resume and Academic Credentials',
+                  title: 'Submit your Resume and Academic Credentials',
                   align: 'left'
                 },
                 {
                   step: 4,
-                  title: 'Our Team will Carefully Review your Application',
+                  title: 'Department will Carefully Review your Application',
                   align: 'right'
                 },
                 {

@@ -10,7 +10,6 @@ type Vacancy = {
   id: number
   college: string
   department: string
-  professorInPractice: number
   visitingFaculty: number
 }
 
@@ -21,7 +20,7 @@ export default function AdminVacancyPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<EditingVacancy>(null)
   const [adding, setAdding] = useState(false)
-  const [newVacancy, setNewVacancy] = useState({ college: '', department: '', professorInPractice: 0, visitingFaculty: 0 })
+  const [newVacancy, setNewVacancy] = useState({ college: '', department: '', visitingFaculty: 0 })
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([])
   const [editingDepartments, setEditingDepartments] = useState<string[]>([])
 
@@ -78,7 +77,7 @@ export default function AdminVacancyPage() {
 
     if (response.ok) {
       setAdding(false)
-      setNewVacancy({ college: '', department: '', professorInPractice: 0, visitingFaculty: 0 })
+      setNewVacancy({ college: '', department: '', visitingFaculty: 0 })
       fetchVacancies()
     }
   }
@@ -122,8 +121,7 @@ export default function AdminVacancyPage() {
     )
   }
 
-  const totalVacancies = vacancies.reduce((sum, v) => sum + v.professorInPractice + v.visitingFaculty, 0)
-  const totalPIP = vacancies.reduce((sum, v) => sum + v.professorInPractice, 0)
+  const totalVacancies = vacancies.reduce((sum, v) => sum + v.visitingFaculty, 0)
   const totalVF = vacancies.reduce((sum, v) => sum + v.visitingFaculty, 0)
 
   return (
@@ -139,7 +137,7 @@ export default function AdminVacancyPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -160,23 +158,6 @@ export default function AdminVacancyPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-600 rounded-xl">
-              <Users className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Professor in Practice</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalPIP}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
           className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800"
         >
           <div className="flex items-center gap-4">
@@ -223,7 +204,7 @@ export default function AdminVacancyPage() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">College *</label>
               <select
@@ -250,16 +231,6 @@ export default function AdminVacancyPage() {
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Professor in Practice</label>
-              <input
-                type="number"
-                min="0"
-                value={newVacancy.professorInPractice}
-                onChange={(e) => setNewVacancy({ ...newVacancy, professorInPractice: parseInt(e.target.value) || 0 })}
-                className="input-field"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Visiting Faculty</label>
@@ -296,7 +267,6 @@ export default function AdminVacancyPage() {
               <tr className="border-b-2 border-gray-200 dark:border-gray-700">
                 <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">College</th>
                 <th className="text-left p-4 font-semibold text-gray-700 dark:text-gray-300">Department</th>
-                <th className="text-center p-4 font-semibold text-gray-700 dark:text-gray-300">Professor in Practice</th>
                 <th className="text-center p-4 font-semibold text-gray-700 dark:text-gray-300">Visiting Faculty</th>
                 <th className="text-center p-4 font-semibold text-gray-700 dark:text-gray-300">Actions</th>
               </tr>
@@ -304,7 +274,7 @@ export default function AdminVacancyPage() {
             <tbody>
               {vacancies.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={4} className="p-8 text-center text-gray-500 dark:text-gray-400">
                     No vacancies added yet. Click "Add Department" to get started.
                   </td>
                 </tr>
@@ -346,15 +316,6 @@ export default function AdminVacancyPage() {
                           <input
                             type="number"
                             min="0"
-                            value={editing.professorInPractice}
-                            onChange={(e) => setEditing({ ...editing, professorInPractice: parseInt(e.target.value) || 0 })}
-                            className="input-field text-center"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <input
-                            type="number"
-                            min="0"
                             value={editing.visitingFaculty}
                             onChange={(e) => setEditing({ ...editing, visitingFaculty: parseInt(e.target.value) || 0 })}
                             className="input-field text-center"
@@ -381,7 +342,6 @@ export default function AdminVacancyPage() {
                       <>
                         <td className="p-4 text-gray-600 dark:text-gray-400">{vacancy.college}</td>
                         <td className="p-4 font-medium">{vacancy.department}</td>
-                        <td className="p-4 text-center">{vacancy.professorInPractice}</td>
                         <td className="p-4 text-center">{vacancy.visitingFaculty}</td>
                         <td className="p-4">
                           <div className="flex items-center justify-center gap-2">

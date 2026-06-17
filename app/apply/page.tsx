@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import { Send, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, ChevronDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { GUJARAT_COLLEGES, COLLEGE_DEPARTMENTS } from '@/lib/colleges'
+import { COLLEGE_DEPARTMENTS } from '@/lib/colleges'
 
 const educationEntrySchema = z.object({
   degree: z.string().min(1, 'Degree is required'),
@@ -26,8 +26,8 @@ const experienceEntrySchema = z.object({
 })
 
 const schema = z.object({
-  applicationType: z.string().min(1, 'Please select an application type'),
-  college: z.string().min(1, 'Please select a college'),
+  applicationType: z.string().default('Visiting Faculty'),
+  college: z.string().default('L.D. College of Engineering, Ahmedabad'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
   contactNo: z.string().min(10, 'Contact number must be at least 10 digits').regex(/^[0-9+\-\s()]+$/, 'Please enter a valid contact number'),
@@ -44,7 +44,7 @@ const schema = z.object({
   timeSlotDay: z.array(z.string()).min(1, 'Please select at least one day'),
   timeSlotPeriod: z.array(z.string()).min(1, 'Please select at least one period'),
   timeSlotText: z.string().optional(),
-  cvLink: z.string().url('Please enter a valid URL').min(1, 'CV/Resume link is required'),
+  resumeFile: z.string().optional(),
   linkedinLink: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   googleScholarLink: z.string().url('Please enter a valid URL').optional().or(z.literal(''))
 })
@@ -71,32 +71,32 @@ export default function ApplyPage() {
   const [isDayDropdownOpen, setIsDayDropdownOpen] = useState(false)
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false)
   const [isDepartmentDropdownOpen, setIsDepartmentDropdownOpen] = useState(false)
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null)
+  const [resumeFileError, setResumeFileError] = useState<string | null>(null)
+  const [resumeUploading, setResumeUploading] = useState(false)
   const dayDropdownRef = useRef<HTMLDivElement>(null)
   const periodDropdownRef = useRef<HTMLDivElement>(null)
   const departmentDropdownRef = useRef<HTMLDivElement>(null)
 
-  const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: 'onChange',
     defaultValues: {
+      applicationType: 'Visiting Faculty',
+      college: 'L.D. College of Engineering, Ahmedabad',
       educationQualifications: [{ degree: '', institution: '', percentage: '', fromDate: '', toDate: '' }],
       experienceEntries: [{ position: '', company: '', fromDate: '', toDate: '', remark: '' }]
     }
   })
 
-  const selectedCollege = watch('college')
-
-  // Update available departments when college changes
+  // Set LDCE as default college and load departments on component mount
   useEffect(() => {
-    if (selectedCollege && COLLEGE_DEPARTMENTS[selectedCollege]) {
-      setAvailableDepartments(COLLEGE_DEPARTMENTS[selectedCollege])
-      // Clear selected departments when college changes
-      setSelectedDepartments([])
-      setValue('department', [])
-    } else {
-      setAvailableDepartments([])
+    const ldceCollege = 'L.D. College of Engineering, Ahmedabad'
+    if (COLLEGE_DEPARTMENTS[ldceCollege]) {
+      setAvailableDepartments(COLLEGE_DEPARTMENTS[ldceCollege])
     }
-  }, [selectedCollege, setValue])
+  }, [])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -159,10 +159,24 @@ export default function ApplyPage() {
   async function onSubmit(data: FormValues) {
     setLoading(true)
     setError(null)
+    setResumeFileError(null)
     try {
+      if (!resumeFile) {
+        setResumeFileError('Resume upload is required')
+        throw new Error('Please upload your resume before submitting')
+      }
+
+      let resumePath = null
+      
+      resumePath = await uploadResumeFile()
+      if (!resumePath) {
+        throw new Error('Failed to upload resume file')
+      }
+
       // Convert arrays to JSON strings for storage
       const submissionData = {
         ...data,
+        resumeFile: resumePath,
         educationQualifications: JSON.stringify(data.educationQualifications),
         experienceEntries: JSON.stringify(data.experienceEntries)
       }
@@ -188,6 +202,71 @@ export default function ApplyPage() {
     } catch (err: any) {
       setError(err.message || 'Failed to submit application')
       setLoading(false)
+    }
+  }
+
+  const handleResumeFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Reset previous errors
+    setResumeFileError(null)
+
+    // Validate file size (500 KB)
+    const MAX_SIZE_MB = 0.5
+    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
+    if (file.size > MAX_SIZE_BYTES) {
+      setResumeFileError(
+        `File size must be less than 500 KB. Current size: ${(file.size / 1024).toFixed(2)} KB`
+      )
+      setResumeFile(null)
+      setResumeFileName(null)
+      return
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ]
+    if (!allowedTypes.includes(file.type)) {
+      setResumeFileError('Only PDF, DOC, DOCX, and TXT files are allowed')
+      setResumeFile(null)
+      setResumeFileName(null)
+      return
+    }
+
+    setResumeFile(file)
+    setResumeFileName(file.name)
+  }
+
+  const uploadResumeFile = async (): Promise<string | null> => {
+    if (!resumeFile) return null
+
+    setResumeUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', resumeFile)
+
+      const res = await fetch('/api/applications/upload-resume', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Resume upload failed')
+      }
+
+      const data = await res.json()
+      return data.resumePath
+    } catch (err: any) {
+      setResumeFileError(err.message || 'Failed to upload resume')
+      return null
+    } finally {
+      setResumeUploading(false)
     }
   }
 
@@ -231,7 +310,7 @@ export default function ApplyPage() {
               Application Form
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              For Professor in Practice & Visiting Faculty 
+              For Visiting Faculty Position
             </p>
             <br></br>
             <p className="text-lg text-gray-900 dark:text-gray-100">Kindly Refer to the Resources page for important information and guidelines.</p>
@@ -255,51 +334,25 @@ export default function ApplyPage() {
               </h2>
 
               <div className="space-y-6">
-                {/* Application Type */}
-                <div>
-                  <label className="label-field">Application Type *</label>
-                  <select
-                    {...register('applicationType')}
-                    className="input-field"
-                  >
-                    <option value="">Select...</option>
-                    <option value="Professor in Practice">Professor in Practice</option>
-                    <option value="Visiting Faculty">Visiting Faculty</option>
-                  </select>
-                  {errors.applicationType && (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {errors.applicationType.message}
-                    </p>
-                  )}
-                </div>
+                {/* Hidden fields for applicationType and college */}
+                <input type="hidden" {...register('applicationType')} />
+                <input type="hidden" {...register('college')} />
 
-                {/* College Selection */}
-                <div>
-                  <label className="label-field">Select College <span className="text-gray-900 dark:text-white">*</span></label>
-                  <select
-                    {...register('college')}
-                    className="input-field"
-                  >
-                    <option value="">Select College...</option>
-                    {GUJARAT_COLLEGES.map((college) => (
-                      <option key={college} value={college}>
-                        {college}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.college && (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {errors.college.message}
-                    </p>
-                  )}
+                {/* Application Info Display */}
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">College:</span> L.D. College of Engineering, Ahmedabad
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                    <span className="font-semibold">Position Type:</span> Visiting Faculty
+                  </p>
                 </div>
 
                 {/* Name */}
                 <div>
                   <label className="label-field">Name of Applicant *</label>
                   <input
+                    suppressHydrationWarning
                     {...register('name')}
                     className="input-field"
                     placeholder="Enter your full name"
@@ -317,6 +370,7 @@ export default function ApplyPage() {
                   <div>
                     <label className="label-field">Email Address *</label>
                     <input
+                      suppressHydrationWarning
                       {...register('email')}
                       type="email"
                       className="input-field"
@@ -332,6 +386,7 @@ export default function ApplyPage() {
                   <div>
                     <label className="label-field">Contact Number *</label>
                     <input
+                      suppressHydrationWarning
                       {...register('contactNo')}
                       type="tel"
                       className="input-field"
@@ -351,6 +406,7 @@ export default function ApplyPage() {
                   <div className="flex items-center justify-between mb-4">
                     <label className="label-field mb-0">Education & Qualifications *</label>
                     <motion.button
+                      suppressHydrationWarning
                       type="button"
                       onClick={addEducationEntry}
                       whileHover={{ scale: 1.05 }}
@@ -373,6 +429,7 @@ export default function ApplyPage() {
                         <div className="flex items-center justify-end mb-2">
                           {educationEntries.length > 1 && (
                             <motion.button
+                              suppressHydrationWarning
                               type="button"
                               onClick={() => removeEducationEntry(index)}
                               whileHover={{ scale: 1.1 }}
@@ -390,6 +447,7 @@ export default function ApplyPage() {
                               Degree *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.degree}
                               onChange={(e) => updateEducationEntry(index, 'degree', e.target.value)}
                               className="input-field"
@@ -401,6 +459,7 @@ export default function ApplyPage() {
                               Institution *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.institution}
                               onChange={(e) => updateEducationEntry(index, 'institution', e.target.value)}
                               className="input-field"
@@ -414,6 +473,7 @@ export default function ApplyPage() {
                             Percentage/CGPA *
                           </label>
                           <input
+                            suppressHydrationWarning
                             value={entry.percentage}
                             onChange={(e) => updateEducationEntry(index, 'percentage', e.target.value)}
                             className="input-field"
@@ -427,6 +487,7 @@ export default function ApplyPage() {
                               From (MM/YYYY) *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.fromDate}
                               onChange={(e) => updateEducationEntry(index, 'fromDate', e.target.value)}
                               className="input-field"
@@ -439,6 +500,7 @@ export default function ApplyPage() {
                               To (MM/YYYY) *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.toDate}
                               onChange={(e) => updateEducationEntry(index, 'toDate', e.target.value)}
                               className="input-field"
@@ -464,6 +526,7 @@ export default function ApplyPage() {
                   <div className="flex items-center justify-between mb-4">
                     <label className="label-field mb-0">Professional Experience</label>
                     <motion.button
+                      suppressHydrationWarning
                       type="button"
                       onClick={addExperienceEntry}
                       whileHover={{ scale: 1.05 }}
@@ -488,6 +551,7 @@ export default function ApplyPage() {
                             Entry {index + 1}
                           </span>
                           <motion.button
+                            suppressHydrationWarning
                             type="button"
                             onClick={() => removeExperienceEntry(index)}
                             whileHover={{ scale: 1.1 }}
@@ -504,6 +568,7 @@ export default function ApplyPage() {
                               Position/Designation *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.position}
                               onChange={(e) => updateExperienceEntry(index, 'position', e.target.value)}
                               className="input-field"
@@ -515,6 +580,7 @@ export default function ApplyPage() {
                               Company/Organization *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.company}
                               onChange={(e) => updateExperienceEntry(index, 'company', e.target.value)}
                               className="input-field"
@@ -529,6 +595,7 @@ export default function ApplyPage() {
                               From (MM/YYYY) *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.fromDate}
                               onChange={(e) => updateExperienceEntry(index, 'fromDate', e.target.value)}
                               className="input-field"
@@ -541,6 +608,7 @@ export default function ApplyPage() {
                               To (MM/YYYY) *
                             </label>
                             <input
+                              suppressHydrationWarning
                               value={entry.toDate}
                               onChange={(e) => updateExperienceEntry(index, 'toDate', e.target.value)}
                               className="input-field"
@@ -555,6 +623,7 @@ export default function ApplyPage() {
                             Remark
                           </label>
                           <textarea
+                            suppressHydrationWarning
                             value={entry.remark || ''}
                             onChange={(e) => updateExperienceEntry(index, 'remark', e.target.value)}
                             className="input-field resize-none"
@@ -578,6 +647,7 @@ export default function ApplyPage() {
                 <div>
                   <label className="label-field">Additional Overall Remark</label>
                   <textarea
+                    suppressHydrationWarning
                     {...register('remark')}
                     className="input-field resize-none"
                     rows={3}
@@ -606,6 +676,7 @@ export default function ApplyPage() {
                 <div>
                   <label className="label-field">Area of Interest <span className="text-gray-900 dark:text-white">*</span></label>
                   <textarea
+                    suppressHydrationWarning
                     {...register('areaOfInterest')}
                     className="input-field resize-none"
                     rows={3}
@@ -624,21 +695,15 @@ export default function ApplyPage() {
                   {/* Preferred Department Multi-Select Dropdown */}
                   <div className="relative" ref={departmentDropdownRef}>
                     <label className="label-field">Preferred Department <span className="text-gray-900 dark:text-white">*</span></label>
-                    {!selectedCollege ? (
-                      <div className="input-field bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed">
-                        Please select a college first
-                      </div>
-                    ) : (
-                      <>
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setIsDepartmentDropdownOpen(!isDepartmentDropdownOpen)}
-                            className="input-field w-full text-left flex items-center justify-between"
-                            disabled={!selectedCollege}
-                          >
-                            <span className="truncate">
-                              {selectedDepartments.length > 0 ? selectedDepartments.join(', ') : 'Select departments...'}
+                    <div className="relative">
+                      <button
+                        suppressHydrationWarning
+                        type="button"
+                        onClick={() => setIsDepartmentDropdownOpen(!isDepartmentDropdownOpen)}
+                        className="input-field w-full text-left flex items-center justify-between"
+                      >
+                        <span className="truncate">
+                          {selectedDepartments.length > 0 ? selectedDepartments.join(', ') : 'Select departments...'}
                             </span>
                             <ChevronDown className={`w-5 h-5 transition-transform ${
                               isDepartmentDropdownOpen ? 'rotate-180' : ''
@@ -652,6 +717,7 @@ export default function ApplyPage() {
                                   className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                                 >
                                   <input
+                                    suppressHydrationWarning
                                     type="checkbox"
                                     checked={selectedDepartments.includes(dept)}
                                     onChange={(e) => {
@@ -669,8 +735,6 @@ export default function ApplyPage() {
                             </div>
                           )}
                         </div>
-                      </>
-                    )}
                     {errors.department && (
                       <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
@@ -681,6 +745,7 @@ export default function ApplyPage() {
                   <div>
                     <label className="label-field">Preferred Mode <span className="text-gray-900 dark:text-white">*</span></label>
                     <select
+                      suppressHydrationWarning
                       {...register('labLectureBoth')}
                       className="input-field"
                     >
@@ -709,6 +774,7 @@ export default function ApplyPage() {
                 <div>
                   <label className="label-field">Preferred Subjects <span className="text-gray-900 dark:text-white">*</span></label>
                   <textarea
+                    suppressHydrationWarning
                     {...register('preferredSubjects')}
                     className="input-field resize-none"
                     rows={3}
@@ -745,6 +811,7 @@ export default function ApplyPage() {
                     <label className="label-field">Preferred Day <span className="text-gray-900 dark:text-white">*</span></label>
                     <div className="relative">
                       <button
+                        suppressHydrationWarning
                         type="button"
                         onClick={() => setIsDayDropdownOpen(!isDayDropdownOpen)}
                         className="input-field w-full text-left flex items-center justify-between"
@@ -764,6 +831,7 @@ export default function ApplyPage() {
                               className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                             >
                               <input
+                                suppressHydrationWarning
                                 type="checkbox"
                                 checked={selectedDays.includes(day)}
                                 onChange={(e) => {
@@ -788,6 +856,7 @@ export default function ApplyPage() {
                     <label className="label-field">Preferred Period <span className="text-gray-900 dark:text-white">*</span></label>
                     <div className="relative">
                       <button
+                        suppressHydrationWarning
                         type="button"
                         onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
                         className="input-field w-full text-left flex items-center justify-between"
@@ -811,6 +880,7 @@ export default function ApplyPage() {
                               className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                             >
                               <input
+                                suppressHydrationWarning
                                 type="checkbox"
                                 checked={selectedPeriods.includes(period.value)}
                                 onChange={(e) => {
@@ -834,6 +904,7 @@ export default function ApplyPage() {
                   <div>
                     <label className="label-field">Specific Time Slot <span className="text-gray-900 dark:text-white">(Optional)</span></label>
                     <input
+                      suppressHydrationWarning
                       {...register('timeSlotText')}
                       className="input-field"
                       placeholder="e.g., 10:00 - 11:30 AM"
@@ -882,25 +953,53 @@ export default function ApplyPage() {
               <div className="space-y-6">
                 <div>
                   <label className="label-field">
-                    CV / Resume Link <span className="text-gray-900 dark:text-white">*</span>
+                    Resume Upload <span className="text-gray-900 dark:text-white">*</span>{' '}
+                    <span className="text-gray-600 dark:text-gray-400 text-sm font-normal">(Max 500 KB)</span>
                   </label>
-                  <input
-                    {...register('cvLink')}
-                    className="input-field"
-                    placeholder="https://example.com/cv.pdf"
-                    type="url"
-                  />
-                  {errors.cvLink && (
+                  <div className="relative">
+                    <input
+                      suppressHydrationWarning
+                      type="file"
+                      onChange={handleResumeFileChange}
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      id="resume-file-input"
+                      disabled={resumeUploading}
+                    />
+                    <label
+                      htmlFor="resume-file-input"
+                      className="input-field block cursor-pointer text-center py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      {resumeFileName ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                          <span className="text-green-700 dark:text-green-300">{resumeFileName}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
+                          <span>📎 Click to upload resume (PDF, DOC, DOCX, TXT)</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                  {resumeFileError && (
                     <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                       <AlertCircle className="w-4 h-4" />
-                      {errors.cvLink.message}
+                      {resumeFileError}
+                    </p>
+                  )}
+                  {resumeFile && (
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      File: {(resumeFile.size / 1024).toFixed(2)} KB
                     </p>
                   )}
                 </div>
+
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="label-field">LinkedIn Profile (Optional)</label>
                     <input
+                      suppressHydrationWarning
                       {...register('linkedinLink')}
                       className="input-field"
                       placeholder="https://linkedin.com/in/yourprofile"
@@ -916,6 +1015,7 @@ export default function ApplyPage() {
                   <div>
                     <label className="label-field">Google Scholar Profile (Optional)</label>
                     <input
+                      suppressHydrationWarning
                       {...register('googleScholarLink')}
                       className="input-field"
                       placeholder="https://scholar.google.com/citations?user=..."
@@ -957,6 +1057,7 @@ export default function ApplyPage() {
               className="flex justify-center"
             >
               <motion.button
+                suppressHydrationWarning
                 type="submit"
                 disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.02 }}

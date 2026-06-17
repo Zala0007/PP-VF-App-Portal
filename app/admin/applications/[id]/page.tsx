@@ -5,19 +5,36 @@ import { FileText, Download, ArrowLeft, Calendar, Mail, Phone, GraduationCap, Br
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export default function ApplicationDetail({ params }: { params: { id: string } }) {
+export default function ApplicationDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params)
   const [item, setItem] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [backHref, setBackHref] = useState('/admin/applications')
   const printRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
-    const token = sessionStorage.getItem('admin_token')
-    fetch(`/api/applications/${params.id}`, { headers: { 'x-admin-token': token || '' } })
+    const adminToken = sessionStorage.getItem('admin_token')
+    const hodToken = sessionStorage.getItem('hod_token')
+
+    if (!adminToken && !hodToken) {
+      window.location.href = '/admin'
+      return
+    }
+
+    if (hodToken && !adminToken) {
+      setBackHref('/hod')
+    }
+
+    const headers: Record<string, string> = adminToken
+      ? { 'x-admin-token': adminToken }
+      : { 'x-hod-token': hodToken || '' }
+
+    fetch(`/api/applications/${id}`, { headers })
       .then((r) => r.json())
       .then(setItem)
       .finally(() => setLoading(false))
-  }, [params.id])
+  }, [id])
 
   const handleExportPDF = () => {
     if (typeof window !== 'undefined') {
@@ -39,7 +56,7 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
         <div className="card text-center">
           <h2 className="text-2xl font-bold text-red-600">Not Found</h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">Application not found or unauthorized</p>
-          <Link href="/admin/applications" className="btn-primary mt-4 inline-block">
+          <Link href={backHref} className="btn-primary mt-4 inline-block">
             Back to Applications
           </Link>
         </div>
@@ -98,7 +115,14 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
     <>
       <style jsx global>{`
         @media print {
+          @page {
+            size: A4;
+            margin: 10mm;
+          }
           body * { visibility: hidden; }
+          body {
+            background: white !important;
+          }
           #printable, #printable * { visibility: visible; }
           #printable { 
             position: absolute; 
@@ -107,8 +131,9 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
             width: 100%;
             background: white !important;
             color: black !important;
-            padding: 15px;
-            font-size: 10px;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.35;
           }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
@@ -124,8 +149,9 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
           .print-header {
             text-align: center;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+            font-size: 12px;
           }
           .print-header-logo {
             width: 50px;
@@ -137,47 +163,49 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
             text-align: center;
           }
           .print-section {
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             page-break-inside: avoid;
           }
           .print-section-title {
-            font-size: 11px;
+            font-size: 14px;
             font-weight: bold;
             background: #f3f4f6;
-            padding: 4px 8px;
-            border-left: 3px solid #3b82f6;
-            margin-bottom: 8px;
+            padding: 7px 10px;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 10px;
           }
           .print-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
-            font-size: 9px;
+            margin-bottom: 10px;
+            font-size: 12.5px;
           }
           .print-table td {
-            padding: 4px 6px;
+            padding: 7px 8px;
             border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
           }
           .print-table td:first-child {
             font-weight: 600;
-            width: 30%;
+            width: 28%;
           }
           .print-entry {
             background: #f9fafb;
             border: 1px solid #e5e7eb;
-            padding: 6px 8px;
-            margin-bottom: 6px;
-            font-size: 9px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            font-size: 12.5px;
+            line-height: 1.4;
           }
           .print-entry-header {
             font-weight: 600;
-            margin-bottom: 3px;
-            font-size: 10px;
+            margin-bottom: 5px;
+            font-size: 13.5px;
           }
           .print-entry-date {
             color: #6b7280 !important;
-            font-size: 8px;
-            margin-bottom: 4px;
+            font-size: 11.5px;
+            margin-bottom: 6px;
           }
           a {
             color: #2563eb !important;
@@ -214,13 +242,13 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
           {/* Print Header */}
           <div className="print-only print-header">
             <h1 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px' }}>
-              Directorate of Technical Education
+              L D College of Engineering
             </h1>
             <h2 style={{ fontSize: '12px', marginBottom: '3px' }}>
               Education Department, Government of Gujarat
             </h2>
             <h3 style={{ fontSize: '11px', marginBottom: '3px' }}>
-              Professor in Practice & Visiting Faculty Online Application Form
+              Visiting Faculty Online Application Form
             </h3>
             <p style={{ fontSize: '9px', color: '#6b7280' }}>
               Application ID: {item.applicationId || `#${item.id}`} | Submitted: {new Date(item.dateTimeOfSubmit).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })} at {new Date(item.dateTimeOfSubmit).toLocaleTimeString('en-IN')}
@@ -391,10 +419,10 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
             <div className="print-section-title">DOCUMENTS & LINKS</div>
             <table className="print-table">
               <tbody>
-                {item.cvLink && (
+                {item.resumeFile && (
                   <tr>
-                    <td>CV/Resume Link</td>
-                    <td><a href={item.cvLink} target="_blank" rel="noopener noreferrer">{item.cvLink}</a></td>
+                    <td>Resume</td>
+                    <td><a href={item.resumeFile} target="_blank" rel="noopener noreferrer">View Uploaded Resume</a></td>
                   </tr>
                 )}
                 {item.linkedinLink && (
@@ -505,17 +533,17 @@ export default function ApplicationDetail({ params }: { params: { id: string } }
             <InfoSection title="Documents & Links" icon={<FileCheck className="w-5 h-5" />}>
               <dl>
                 <div className="grid grid-cols-3 gap-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                  <dt className="font-medium text-gray-600 dark:text-gray-400">CV Link</dt>
+                  <dt className="font-medium text-gray-600 dark:text-gray-400">Resume</dt>
                   <dd className="col-span-2">
-                    {item.cvLink ? (
+                    {item.resumeFile ? (
                       <a
-                        href={item.cvLink}
+                        href={item.resumeFile}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-2"
                       >
                         <FileText className="w-4 h-4" />
-                        View CV
+                        View Uploaded Resume
                       </a>
                     ) : '—'}
                   </dd>
