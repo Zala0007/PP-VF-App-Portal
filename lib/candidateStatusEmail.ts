@@ -8,46 +8,52 @@ type CandidateStatusEmailInput = {
   status: CandidateStatus
 }
 
-const STATUS_SUBJECTS: Record<CandidateStatus, string> = {
-  'Shortlisted for Interview': 'Update on Your Visiting Faculty Application',
-  Rejected: 'Update on Your Visiting Faculty Application',
-  Selected: 'Selection for Visiting Faculty Engagement'
-}
-
-function getStatusMessage(status: CandidateStatus, department: string) {
-  if (status === 'Shortlisted for Interview') {
-    return `We are pleased to inform you that your application has been shortlisted for an interview for the post of Visiting Faculty at the ${department} department. The department will contact you with the further instructions. Details for the Interview Timing and Venue are given below.`
-  }
-
-  if (status === 'Selected') {
-    return `We are pleased to inform you that you have been selected for the Visiting Faculty engagement for the ${department} department. The department will contact you regarding the next steps and required formalities.`
-  }
-
-  return `Thank you for your interest in the Visiting Faculty engagement for the ${department} department. After careful review, we regret to inform you that your application has not been selected for further process at this time.`
-}
-
 export function isCandidateStatus(value: string): value is CandidateStatus {
   return value === 'Shortlisted for Interview' || value === 'Rejected' || value === 'Selected'
 }
 
 export function buildCandidateStatusEmailDraft(input: CandidateStatusEmailInput) {
   const department = input.department || 'concerned'
-  const subject = STATUS_SUBJECTS[input.status]
-  const applicationDetails = [
-    `Application ID: ${input.applicationId}`,
-    ...(input.status === 'Shortlisted for Interview' ? ['Date:', 'Time:', 'Venue:'] : []),
-    `Status: ${input.status}`
-  ]
-  const body = [
-    `Dear ${input.name},`,
-    '',
-    getStatusMessage(input.status, department),
-    '',
-    ...applicationDetails,
-    '',
-    'Regards,',
-    'L.D. College of Engineering, Ahmedabad'
-  ].join('\n')
+  let subject = 'Update on Your Visiting Faculty Application'
+  let body = `Dear ${input.name},
+
+Thank you for your interest in the Visiting Faculty engagement for the ${department} branch. After careful review, we regret to inform you that your application has not been selected for further process at this time.
+
+Regards,
+L. D. College of Engineering
+Ahmedabad`
+
+  if (input.status === 'Shortlisted for Interview') {
+    subject = `Shortlisted for Visiting Faculty – ${department}`
+    body = `Dear ${input.name},
+
+Greetings from L. D. College of Engineering.
+
+We are pleased to inform you that you have been shortlisted for the position of Visiting Faculty in the ${department} branch.
+
+You are requested to remain available for the further selection process. Details regarding the interview/demo lecture/document verification will be shared with you shortly.
+
+Regards,
+L. D. College of Engineering
+Ahmedabad`
+  }
+
+  if (input.status === 'Selected') {
+    subject = `Selection for Visiting Faculty – ${department}`
+    body = `Dear ${input.name},
+
+Greetings from L. D. College of Engineering.
+
+We are pleased to inform you that you have been selected as Visiting Faculty in the ${department} branch at L. D. College of Engineering.
+
+You are requested to report to the concerned department and complete the required formalities.
+
+Congratulations and welcome to LDCE.
+
+Regards,
+L. D. College of Engineering
+Ahmedabad`
+  }
 
   return {
     subject,

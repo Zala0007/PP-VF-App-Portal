@@ -21,26 +21,25 @@ export async function sendApplicationReceivedEmail(
   applicantEmail: string,
   applicantName: string,
   applicationId: string,
-  applicationType: string
+  applicationType: string,
+  department: unknown
 ) {
+  const branchName = parseDepartments(department).join(', ') || 'concerned'
   const mailOptions = {
     from: `"L D College of Engineering" <${process.env.EMAIL_USER}>`,
     to: applicantEmail,
-    subject: `Acknowledgement of Your Application – Post of ${applicationType}`,
+    subject: `Application Received – Visiting Faculty, ${branchName}`,
     text: `Dear ${applicantName},
 
-This is to confirm that we have received your application for the post of ${applicationType}. Your application has been successfully recorded in our recruitment system.
+Greetings from L. D. College of Engineering.
 
-Your Unique Application ID: ${applicationId}
+This is to acknowledge that we have received your application for the position of Visiting Faculty in the ${branchName} branch.
 
-Please keep this ID, as it will be required for any future communication regarding the selection process.
+Your application will be scrutinized by the concerned committee. Shortlisted candidates will be informed through email for the next stage of the selection process.
 
-Your application will now undergo through our standard screening procedure as per the Terms of Use and Recruitment Guidelines. If your profile is shortlisted, you will be notified via email about the next steps.
-
-Thank you for your interest in joining our organization.
-
-Warm regards,
-L D College of Engineering`,
+Regards,
+L. D. College of Engineering
+Ahmedabad`,
   }
 
   try {

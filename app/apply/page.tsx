@@ -41,8 +41,8 @@ const schema = z.object({
   department: z.array(z.string()).min(1, 'Please select at least one department'),
   labLectureBoth: z.string().min(1, 'Please select preferred mode'),
   preferredSubjects: z.string().min(1, 'Preferred subjects are required'),
-  timeSlotDay: z.array(z.string()).min(1, 'Please select at least one day'),
-  timeSlotPeriod: z.array(z.string()).min(1, 'Please select at least one period'),
+  timeSlotDay: z.array(z.string()).optional(),
+  timeSlotPeriod: z.array(z.string()).optional(),
   timeSlotText: z.string().optional(),
   resumeFile: z.string().optional(),
   linkedinLink: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
@@ -64,19 +64,13 @@ export default function ApplyPage() {
   const [experienceEntries, setExperienceEntries] = useState<ExperienceEntry[]>([
     { position: '', company: '', fromDate: '', toDate: '', remark: '' }
   ])
-  const [selectedDays, setSelectedDays] = useState<string[]>([])
-  const [selectedPeriods, setSelectedPeriods] = useState<string[]>([])
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([])
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([])
-  const [isDayDropdownOpen, setIsDayDropdownOpen] = useState(false)
-  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false)
   const [isDepartmentDropdownOpen, setIsDepartmentDropdownOpen] = useState(false)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
   const [resumeFileError, setResumeFileError] = useState<string | null>(null)
   const [resumeUploading, setResumeUploading] = useState(false)
-  const dayDropdownRef = useRef<HTMLDivElement>(null)
-  const periodDropdownRef = useRef<HTMLDivElement>(null)
   const departmentDropdownRef = useRef<HTMLDivElement>(null)
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
@@ -101,12 +95,6 @@ export default function ApplyPage() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dayDropdownRef.current && !dayDropdownRef.current.contains(event.target as Node)) {
-        setIsDayDropdownOpen(false)
-      }
-      if (periodDropdownRef.current && !periodDropdownRef.current.contains(event.target as Node)) {
-        setIsPeriodDropdownOpen(false)
-      }
       if (departmentDropdownRef.current && !departmentDropdownRef.current.contains(event.target as Node)) {
         setIsDepartmentDropdownOpen(false)
       }
@@ -790,7 +778,7 @@ export default function ApplyPage() {
               </div>
             </motion.div>
 
-            {/* Preferred Time Availability Card */}
+            {/* Documents Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -800,152 +788,6 @@ export default function ApplyPage() {
               <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-white text-sm font-bold">
                   3
-                </div>
-                Preferred Time Availability
-              </h2>
-
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Preferred Day Multi-Select Dropdown */}
-                  <div className="relative" ref={dayDropdownRef}>
-                    <label className="label-field">Preferred Day <span className="text-gray-900 dark:text-white">*</span></label>
-                    <div className="relative">
-                      <button
-                        suppressHydrationWarning
-                        type="button"
-                        onClick={() => setIsDayDropdownOpen(!isDayDropdownOpen)}
-                        className="input-field w-full text-left flex items-center justify-between"
-                      >
-                        <span className="truncate">
-                          {selectedDays.length > 0 ? selectedDays.join(', ') : 'Select days...'}
-                        </span>
-                        <ChevronDown className={`w-5 h-5 transition-transform ${
-                          isDayDropdownOpen ? 'rotate-180' : ''
-                        }`} />
-                      </button>
-                      {isDayDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
-                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
-                            <label
-                              key={day}
-                              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                            >
-                              <input
-                                suppressHydrationWarning
-                                type="checkbox"
-                                checked={selectedDays.includes(day)}
-                                onChange={(e) => {
-                                  const newDays = e.target.checked
-                                    ? [...selectedDays, day]
-                                    : selectedDays.filter(d => d !== day)
-                                  setSelectedDays(newDays)
-                                  setValue('timeSlotDay', newDays)
-                                }}
-                                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                              />
-                              <span className="text-gray-700 dark:text-gray-300">{day}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Preferred Period Multi-Select Dropdown */}
-                  <div className="relative" ref={periodDropdownRef}>
-                    <label className="label-field">Preferred Period <span className="text-gray-900 dark:text-white">*</span></label>
-                    <div className="relative">
-                      <button
-                        suppressHydrationWarning
-                        type="button"
-                        onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
-                        className="input-field w-full text-left flex items-center justify-between"
-                      >
-                        <span className="truncate">
-                          {selectedPeriods.length > 0 ? selectedPeriods.join(', ') : 'Select periods...'}
-                        </span>
-                        <ChevronDown className={`w-5 h-5 transition-transform ${
-                          isPeriodDropdownOpen ? 'rotate-180' : ''
-                        }`} />
-                      </button>
-                      {isPeriodDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
-                          {[
-                            { value: 'Morning', label: 'Morning (9 AM - 12 PM)' },
-                            { value: 'Noon', label: 'Noon (12 PM - 3 PM)' },
-                            { value: 'Evening', label: 'Evening (3 PM - 6 PM)' }
-                          ].map((period) => (
-                            <label
-                              key={period.value}
-                              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                            >
-                              <input
-                                suppressHydrationWarning
-                                type="checkbox"
-                                checked={selectedPeriods.includes(period.value)}
-                                onChange={(e) => {
-                                  const newPeriods = e.target.checked
-                                    ? [...selectedPeriods, period.value]
-                                    : selectedPeriods.filter(p => p !== period.value)
-                                  setSelectedPeriods(newPeriods)
-                                  setValue('timeSlotPeriod', newPeriods)
-                                }}
-                                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                              />
-                              <span className="text-gray-700 dark:text-gray-300">{period.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="label-field">Specific Time Slot <span className="text-gray-900 dark:text-white">(Optional)</span></label>
-                    <input
-                      suppressHydrationWarning
-                      {...register('timeSlotText')}
-                      className="input-field"
-                      placeholder="e.g., 10:00 - 11:30 AM"
-                    />
-                    {errors.timeSlotText && (
-                      <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.timeSlotText.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {(errors.timeSlotDay || errors.timeSlotPeriod) && (
-                  <div className="space-y-2">
-                    {errors.timeSlotDay && (
-                      <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.timeSlotDay.message}
-                      </p>
-                    )}
-                    {errors.timeSlotPeriod && (
-                      <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.timeSlotPeriod.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Documents Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="card"
-            >
-              <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                  4
                 </div>
                 Documents & Links
               </h2>

@@ -53,7 +53,8 @@ export async function POST(request: Request) {
         created.email,
         created.name,
         created.applicationId,
-        created.applicationType
+        created.applicationType,
+        created.department
       )
     } catch (emailError) {
       console.error('Failed to send confirmation email:', emailError)
