@@ -19,13 +19,9 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd /home/vf_ldce/PP-VF-App-Portal
+            git reset --hard origin/main
             git pull origin main
             npm install
             npm run build
             pm2 restart vf-ldce
-            if ! sudo cmp -s nginx/default.conf /etc/nginx/sites-available/default; then
-              sudo cp nginx/default.conf /etc/nginx/sites-available/default
-              sudo nginx -t
-              sudo systemctl reload nginx
-            fi
             sudo chmod o+x /home/vf_ldce
