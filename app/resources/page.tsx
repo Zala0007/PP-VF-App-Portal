@@ -91,8 +91,9 @@ export default function ResourcesPage() {
           </p>
         </motion.div>
 
+        <div className="flex flex-col">
         {/* Resources Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="order-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {resources.map((resource, index) => {
             const Icon = resource.icon
             const isExternal = resource.href.startsWith('http')
@@ -151,7 +152,7 @@ export default function ResourcesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-16 mb-12"
+            className="order-1 mb-12"
           >
             <h2 className="text-3xl font-bold mb-6 text-center">
               <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
@@ -209,6 +210,7 @@ export default function ResourcesPage() {
             </div>
           </motion.div>
         )}
+        </div>
 
         {/* Additional Info */}
         <motion.div
