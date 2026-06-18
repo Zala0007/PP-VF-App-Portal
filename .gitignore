@@ -40,4 +40,10 @@ next-env.d.ts
 *.db-journal
 
 # uploads
-/public/uploads/
+/public/uploads/*
+!/public/uploads/resumes/
+!/public/uploads/resources/
+/public/uploads/resumes/*
+!/public/uploads/resumes/.gitkeep
+/public/uploads/resources/*
+!/public/uploads/resources/.gitkeep
