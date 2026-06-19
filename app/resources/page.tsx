@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { BookOpen, Calendar, Building2, FileText, IndianRupee, ExternalLink, FileCheck, Download } from 'lucide-react'
+import { BookOpen, Calendar, FileText, ExternalLink, FileCheck, Download } from 'lucide-react'
 import Link from 'next/link'
 
 interface Resource {
@@ -32,15 +32,6 @@ const resources = [
     gradient: 'from-purple-500 to-pink-500',
     bgGradient: 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20',
     borderColor: 'border-purple-200 dark:border-purple-800'
-  },
-  {
-    title: 'Colleges',
-    description: 'View all Government Gujarat engineering colleges and visit their websites.',
-    icon: Building2,
-    href: '/colleges',
-    gradient: 'from-green-500 to-emerald-500',
-    bgGradient: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
-    borderColor: 'border-green-200 dark:border-green-800'
   }
 ]
 
@@ -93,7 +84,7 @@ export default function ResourcesPage() {
 
         <div className="flex flex-col">
         {/* Resources Grid */}
-        <div className="order-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="order-2 mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
           {resources.map((resource, index) => {
             const Icon = resource.icon
             const isExternal = resource.href.startsWith('http')
@@ -111,7 +102,7 @@ export default function ResourcesPage() {
                   rel={isExternal ? 'noopener noreferrer' : undefined}
                   className="block h-full"
                 >
-                  <div className={`card h-full bg-gradient-to-br ${resource.bgGradient} border-2 ${resource.borderColor} hover:scale-105 transition-all duration-300 group cursor-pointer`}>
+                  <div className={`card group flex h-full cursor-pointer flex-col border-2 bg-gradient-to-br ${resource.bgGradient} ${resource.borderColor} transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
                     {/* Icon */}
                     <div className="mb-4">
                       <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${resource.gradient} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}>

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Send, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, ChevronDown } from 'lucide-react'
+import { Send, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, ChevronDown, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { COLLEGE_DEPARTMENTS } from '@/lib/colleges'
 
@@ -52,6 +52,112 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 type EducationEntry = z.infer<typeof educationEntrySchema>
 type ExperienceEntry = z.infer<typeof experienceEntrySchema>
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const CURRENT_YEAR = new Date().getFullYear()
+const AVAILABLE_YEARS = Array.from(
+  { length: CURRENT_YEAR - 1944 },
+  (_, index) => CURRENT_YEAR + 5 - index
+)
+
+function MonthYearPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [selectedMonth, selectedYear] = value.split('/')
+  const [isOpen, setIsOpen] = useState(false)
+  const [displayYear, setDisplayYear] = useState(Number(selectedYear) || CURRENT_YEAR)
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (selectedYear) setDisplayYear(Number(selectedYear))
+  }, [selectedYear])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const closePicker = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) setIsOpen(false)
+    }
+
+    document.addEventListener('mousedown', closePicker)
+    return () => document.removeEventListener('mousedown', closePicker)
+  }, [isOpen])
+
+  const selectedLabel = selectedMonth && selectedYear
+    ? `${MONTHS[Number(selectedMonth) - 1]} ${selectedYear}`
+    : 'Select month and year'
+
+  return (
+    <div ref={pickerRef} className="relative">
+      <button
+        suppressHydrationWarning
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="input-field flex items-center justify-between text-left"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+      >
+        <span className={value ? '' : 'text-gray-500'}>{selectedLabel}</span>
+        <CalendarDays className="h-5 w-5 text-gray-500" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-30 mt-2 w-full min-w-64 rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setDisplayYear((year) => year - 1)}
+              disabled={displayYear <= 1950}
+              className="rounded-lg p-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800"
+              aria-label="Previous year"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <select
+              value={displayYear}
+              onChange={(event) => setDisplayYear(Number(event.target.value))}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-semibold dark:border-gray-700 dark:bg-gray-800"
+              aria-label="Select year"
+            >
+              {AVAILABLE_YEARS.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <button
+              type="button"
+              onClick={() => setDisplayYear((year) => year + 1)}
+              disabled={displayYear >= CURRENT_YEAR + 5}
+              className="rounded-lg p-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800"
+              aria-label="Next year"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {MONTHS.map((month, index) => {
+              const monthValue = String(index + 1).padStart(2, '0')
+              const isSelected = selectedMonth === monthValue && selectedYear === String(displayYear)
+              return (
+                <button
+                  key={month}
+                  type="button"
+                  onClick={() => {
+                    onChange(`${monthValue}/${displayYear}`)
+                    setIsOpen(false)
+                  }}
+                  className={`rounded-lg px-3 py-2 text-sm transition-colors ${
+                    isSelected
+                      ? 'bg-primary-600 text-white'
+                      : 'hover:bg-primary-50 dark:hover:bg-primary-900/30'
+                  }`}
+                >
+                  {month}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function ApplyPage() {
   const router = useRouter()
@@ -301,7 +407,7 @@ export default function ApplyPage() {
               For Visiting Faculty Position
             </p>
             <br></br>
-            <p className="text-lg text-gray-900 dark:text-gray-100">Kindly Refer to the Resources page for important information and guidelines.</p>
+             <p className="text-lg text-gray-900 dark:text-gray-100">Kindly Refer to the Resources page for important information and guidelines.</p>
           </div>
 
           
@@ -325,16 +431,6 @@ export default function ApplyPage() {
                 {/* Hidden fields for applicationType and college */}
                 <input type="hidden" {...register('applicationType')} />
                 <input type="hidden" {...register('college')} />
-
-                {/* Application Info Display */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-semibold">College:</span> L.D. College of Engineering, Ahmedabad
-                  </p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                    <span className="font-semibold">Position Type:</span> Visiting Faculty
-                  </p>
-                </div>
 
                 {/* Name */}
                 <div>
@@ -391,8 +487,16 @@ export default function ApplyPage() {
 
                 {/* Education & Qualifications */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="label-field mb-0">Education & Qualifications *</label>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      <label className="label-field mb-0">Education & Qualifications *</label>
+                      <a
+                        href="/resources"
+                        className="text-sm font-semibold text-primary-600 hover:underline dark:text-primary-400"
+                      >
+                        Refer Eligibility Document
+                      </a>
+                    </div>
                     <motion.button
                       suppressHydrationWarning
                       type="button"
@@ -474,26 +578,18 @@ export default function ApplyPage() {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               From (MM/YYYY) *
                             </label>
-                            <input
-                              suppressHydrationWarning
+                            <MonthYearPicker
                               value={entry.fromDate}
-                              onChange={(e) => updateEducationEntry(index, 'fromDate', e.target.value)}
-                              className="input-field"
-                              placeholder="08/2015"
-                              maxLength={7}
+                              onChange={(value) => updateEducationEntry(index, 'fromDate', value)}
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               To (MM/YYYY) *
                             </label>
-                            <input
-                              suppressHydrationWarning
+                            <MonthYearPicker
                               value={entry.toDate}
-                              onChange={(e) => updateEducationEntry(index, 'toDate', e.target.value)}
-                              className="input-field"
-                              placeholder="05/2019"
-                              maxLength={7}
+                              onChange={(value) => updateEducationEntry(index, 'toDate', value)}
                             />
                           </div>
                         </div>
@@ -582,26 +678,18 @@ export default function ApplyPage() {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               From (MM/YYYY) *
                             </label>
-                            <input
-                              suppressHydrationWarning
+                            <MonthYearPicker
                               value={entry.fromDate}
-                              onChange={(e) => updateExperienceEntry(index, 'fromDate', e.target.value)}
-                              className="input-field"
-                              placeholder="08/2015"
-                              maxLength={7}
+                              onChange={(value) => updateExperienceEntry(index, 'fromDate', value)}
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               To (MM/YYYY) *
                             </label>
-                            <input
-                              suppressHydrationWarning
+                            <MonthYearPicker
                               value={entry.toDate}
-                              onChange={(e) => updateExperienceEntry(index, 'toDate', e.target.value)}
-                              className="input-field"
-                              placeholder="05/2019"
-                              maxLength={7}
+                              onChange={(value) => updateExperienceEntry(index, 'toDate', value)}
                             />
                           </div>
                         </div>

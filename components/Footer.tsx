@@ -91,11 +91,6 @@ export default function Footer() {
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Resources</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/colleges" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                  Colleges
-                </Link>
-              </li>
-              <li>
                 <a href="https://gtu.ac.in/syllabus/syllabus.aspx" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                   GTU Syllabus
                 </a>
