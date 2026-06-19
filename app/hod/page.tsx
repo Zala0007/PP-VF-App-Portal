@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, CheckCircle, Eye, LogOut, Mail, Search, Users, XCircle } from 'lucide-react'
 import Link from 'next/link'
-import { buildCandidateStatusEmailDraft, isCandidateStatus } from '@/lib/candidateStatusEmail'
+import { buildCandidateStatusEmailDraft, isCandidateStatus, type InterviewDetails } from '@/lib/candidateStatusEmail'
+import InterviewDetailsModal from '@/components/InterviewDetailsModal'
 
 type AppRow = {
   applicationId: string
@@ -25,6 +26,7 @@ export default function HodDashboard() {
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [interviewCandidate, setInterviewCandidate] = useState<AppRow | null>(null)
 
   useEffect(() => {
     const token = sessionStorage.getItem('hod_token')
@@ -112,9 +114,14 @@ export default function HodDashboard() {
     }
   }
 
-  async function updateSelectionStatus(item: AppRow, selectionStatus: string) {
+  async function updateSelectionStatus(item: AppRow, selectionStatus: string, interviewDetails?: InterviewDetails) {
     if (!selectionStatus) return
     if (!item.reviewed) return
+
+    if (selectionStatus === 'Shortlisted for Interview' && !interviewDetails) {
+      setInterviewCandidate(item)
+      return
+    }
 
     const emailWindow = item.email && isCandidateStatus(selectionStatus)
       ? window.open('', '_blank')
@@ -154,7 +161,8 @@ export default function HodDashboard() {
           applicationId: item.applicationId,
           email: item.email,
           department: statusDepartment,
-          status: result.selectionStatus
+          status: result.selectionStatus,
+          interviewDetails
         })
         emailWindow.location.href = draft.gmailComposeUrl
       }
@@ -212,6 +220,17 @@ export default function HodDashboard() {
 
   return (
     <div className="gradient-bg min-h-screen py-12">
+      {interviewCandidate && (
+        <InterviewDetailsModal
+          candidateName={interviewCandidate.name}
+          onCancel={() => setInterviewCandidate(null)}
+          onConfirm={(details) => {
+            const candidate = interviewCandidate
+            setInterviewCandidate(null)
+            void updateSelectionStatus(candidate, 'Shortlisted for Interview', details)
+          }}
+        />
+      )}
       <div className="container-custom">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>

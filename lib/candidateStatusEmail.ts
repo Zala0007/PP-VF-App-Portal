@@ -1,11 +1,18 @@
 export type CandidateStatus = 'Shortlisted for Interview' | 'Rejected' | 'Selected'
 
+export type InterviewDetails = {
+  date: string
+  time: string
+  venue: string
+}
+
 type CandidateStatusEmailInput = {
   name: string
   applicationId: string
   email: string
   department: string
   status: CandidateStatus
+  interviewDetails?: InterviewDetails
 }
 
 export function isCandidateStatus(value: string): value is CandidateStatus {
@@ -24,6 +31,16 @@ L. D. College of Engineering
 Ahmedabad`
 
   if (input.status === 'Shortlisted for Interview') {
+    const interviewDate = input.interviewDetails?.date
+      ? new Date(`${input.interviewDetails.date}T00:00:00`).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        })
+      : 'To be confirmed'
+    const interviewTime = input.interviewDetails?.time || 'To be confirmed'
+    const interviewVenue = input.interviewDetails?.venue || 'To be confirmed'
+
     subject = `Shortlisted for Visiting Faculty – ${department}`
     body = `Dear ${input.name},
 
@@ -31,7 +48,12 @@ Greetings from L. D. College of Engineering.
 
 We are pleased to inform you that you have been shortlisted for the position of Visiting Faculty in the ${department} branch.
 
-You are requested to remain available for the further selection process. Details regarding the interview/demo lecture/document verification will be shared with you shortly.
+Interview Details:
+Date: ${interviewDate}
+Time: ${interviewTime}
+Venue: ${interviewVenue}
+
+You are requested to report at the venue on time and bring the required original documents for verification.
 
 Regards,
 L. D. College of Engineering

@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Eye, CheckCircle, XCircle, Calendar, Users, ArrowLeft, Search, Mail } from 'lucide-react'
 import Link from 'next/link'
-import { buildCandidateStatusEmailDraft, isCandidateStatus } from '@/lib/candidateStatusEmail'
+import { buildCandidateStatusEmailDraft, isCandidateStatus, type InterviewDetails } from '@/lib/candidateStatusEmail'
+import InterviewDetailsModal from '@/components/InterviewDetailsModal'
 
 type AppRow = {
   applicationId: string
@@ -25,6 +26,7 @@ export default function ApplicationsList() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterDepartment, setFilterDepartment] = useState('')
   const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null)
+  const [interviewCandidate, setInterviewCandidate] = useState<AppRow | null>(null)
 
   const fetchApplications = () => {
     const adminToken = sessionStorage.getItem('admin_token')
@@ -117,9 +119,14 @@ export default function ApplicationsList() {
     return [value]
   }
 
-  const updateSelectionStatus = async (item: AppRow, selectionStatus: string) => {
+  const updateSelectionStatus = async (item: AppRow, selectionStatus: string, interviewDetails?: InterviewDetails) => {
     if (!selectionStatus) return
     if (!item.reviewed) return
+
+    if (selectionStatus === 'Shortlisted for Interview' && !interviewDetails) {
+      setInterviewCandidate(item)
+      return
+    }
 
     const statusDepartment = viewerRole === 'hod'
       ? sessionStorage.getItem('hod_department') || formatDepartment(item.department)
@@ -154,7 +161,8 @@ export default function ApplicationsList() {
             applicationId: item.applicationId,
             email: item.email,
             department: statusDepartment,
-            status: selectionStatus
+            status: selectionStatus,
+            interviewDetails
           })
           emailWindow.location.href = draft.gmailComposeUrl
         }
@@ -199,6 +207,17 @@ export default function ApplicationsList() {
 
   return (
     <div className="gradient-bg min-h-screen">
+      {interviewCandidate && (
+        <InterviewDetailsModal
+          candidateName={interviewCandidate.name}
+          onCancel={() => setInterviewCandidate(null)}
+          onConfirm={(details) => {
+            const candidate = interviewCandidate
+            setInterviewCandidate(null)
+            void updateSelectionStatus(candidate, 'Shortlisted for Interview', details)
+          }}
+        />
+      )}
       <div className="container-custom py-8">
       {/* Back and Email Management Buttons */}
       <div className="mb-6 flex justify-between items-center">

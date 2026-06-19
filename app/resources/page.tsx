@@ -8,10 +8,7 @@ import Link from 'next/link'
 interface Resource {
   id: number
   title: string
-  fileName: string
   filePath: string
-  fileSize: number
-  createdAt: string
 }
 
 const resources = [
@@ -55,12 +52,6 @@ export default function ResourcesPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
   }
 
   return (
@@ -147,7 +138,7 @@ export default function ResourcesPage() {
           >
             <h2 className="text-3xl font-bold mb-6 text-center">
               <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                Norms and Remuneration Documents
+                Notice and Circular
               </span>
             </h2>
             <div className="grid gap-4">
@@ -168,12 +159,6 @@ export default function ResourcesPage() {
                         <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
                           {resource.title}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {resource.fileName} • {formatFileSize(resource.fileSize)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                          Uploaded: {new Date(resource.createdAt).toLocaleDateString()}
-                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
