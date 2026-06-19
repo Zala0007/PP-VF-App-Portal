@@ -1,6 +1,7 @@
 import prisma from '../../../../lib/prisma'
 import { NextResponse } from 'next/server'
 import { applicationBelongsToDepartment, LDCE_COLLEGE_NAME, parseDepartments, verifyAdminToken, verifyHodToken } from '@/lib/roleAuth'
+import { getDepartmentHodEmail } from '@/lib/collegeEmails'
 
 function parseJsonField(value: string | null) {
   if (!value) return null
@@ -68,7 +69,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    if (!canAccessApplication(request, application)) {
+    const isAdmin = verifyAdminToken(request.headers.get('x-admin-token'))
+    const hodCredential = verifyHodToken(request.headers.get('x-hod-token'))
+    const canUpdate = isAdmin || Boolean(
+      hodCredential &&
+      application.college === LDCE_COLLEGE_NAME &&
+      applicationBelongsToDepartment(application.department, hodCredential.department)
+    )
+
+    if (!canUpdate) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
@@ -103,7 +112,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       data
     })
     
-    return NextResponse.json(updated)
+    return NextResponse.json({
+      ...updated,
+      statusDepartment: hodCredential?.department,
+      senderEmail: hodCredential ? getDepartmentHodEmail(hodCredential.department) : undefined
+    })
   } catch (err) {
     console.error('PATCH error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

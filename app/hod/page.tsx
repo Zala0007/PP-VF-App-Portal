@@ -155,12 +155,12 @@ export default function HodDashboard() {
       )
 
       if (emailWindow && item.email && isCandidateStatus(result.selectionStatus)) {
-        const statusDepartment = department || sessionStorage.getItem('hod_department') || formatDepartment(item.department)
         const draft = buildCandidateStatusEmailDraft({
           name: item.name,
           applicationId: item.applicationId,
           email: item.email,
-          department: statusDepartment,
+          senderEmail: result.senderEmail,
+          department: result.statusDepartment,
           status: result.selectionStatus,
           interviewDetails
         })

@@ -102,7 +102,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/resources#norms-remuneration" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                  Norms and Remuneration Details
+                  Notice and Circular
                 </Link>
               </li>
             </ul>

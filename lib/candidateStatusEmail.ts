@@ -10,6 +10,7 @@ type CandidateStatusEmailInput = {
   name: string
   applicationId: string
   email: string
+  senderEmail?: string
   department: string
   status: CandidateStatus
   interviewDetails?: InterviewDetails
@@ -77,9 +78,18 @@ L. D. College of Engineering
 Ahmedabad`
   }
 
+  const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1${input.senderEmail ? `&authuser=${encodeURIComponent(input.senderEmail)}` : ''}&to=${encodeURIComponent(input.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  const gmailOpenUrl = input.senderEmail
+    ? `https://accounts.google.com/AccountChooser?service=mail&continue=${encodeURIComponent(gmailComposeUrl)}`
+    : gmailComposeUrl
+
   return {
+    senderEmail: input.senderEmail,
+    recipientEmail: input.email,
     subject,
     body,
-    gmailComposeUrl: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(input.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    gmailComposeUrl: gmailOpenUrl
   }
 }
+
+export type CandidateStatusEmailDraft = ReturnType<typeof buildCandidateStatusEmailDraft>

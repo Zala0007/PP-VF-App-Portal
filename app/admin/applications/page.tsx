@@ -128,10 +128,6 @@ export default function ApplicationsList() {
       return
     }
 
-    const statusDepartment = viewerRole === 'hod'
-      ? sessionStorage.getItem('hod_department') || formatDepartment(item.department)
-      : formatDepartment(item.department)
-
     const emailWindow = item.email && isCandidateStatus(selectionStatus)
       ? window.open('', '_blank')
       : null
@@ -151,6 +147,7 @@ export default function ApplicationsList() {
       })
 
       if (response.ok) {
+        const result = await response.json()
         setItems(items.map(currentItem =>
           currentItem.applicationId === item.applicationId ? { ...currentItem, selectionStatus } : currentItem
         ))
@@ -160,7 +157,8 @@ export default function ApplicationsList() {
             name: item.name,
             applicationId: item.applicationId,
             email: item.email,
-            department: statusDepartment,
+            senderEmail: result.senderEmail,
+            department: result.statusDepartment || formatDepartment(item.department),
             status: selectionStatus,
             interviewDetails
           })

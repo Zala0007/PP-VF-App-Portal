@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
 import { applicationBelongsToDepartment, LDCE_COLLEGE_NAME, parseDepartments, verifyHodToken } from '@/lib/roleAuth'
 import { NextResponse } from 'next/server'
+import { getDepartmentHodEmail } from '@/lib/collegeEmails'
 
 export async function PATCH(
   request: Request,
@@ -66,7 +67,9 @@ export async function PATCH(
 
     return NextResponse.json({
       ...updated,
-      department: parseDepartments(updated.department)
+      department: parseDepartments(updated.department),
+      statusDepartment: credential.department,
+      senderEmail: getDepartmentHodEmail(credential.department)
     })
   } catch (error) {
     console.error('HOD PATCH error:', error)

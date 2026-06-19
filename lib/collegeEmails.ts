@@ -4,7 +4,6 @@ export const COLLEGE_PRINCIPAL_EMAILS: { [key: string]: string } = {
 
 // Physics, Maths, and English applications all route to the Science & Humanities HOD.
 const SCIENCE_AND_HUMANITIES_HOD_EMAIL = "head_general@ldce.ac.in";
-// const SCIENCE_AND_HUMANITIES_HOD_EMAIL = "psraval@ldce.ac.in";
 
 export const DEPARTMENT_HOD_EMAILS: { [key: string]: string } = {
   "Physics - Science & Humanities (General) Department": SCIENCE_AND_HUMANITIES_HOD_EMAIL,
@@ -29,3 +28,17 @@ export const DEPARTMENT_HOD_EMAILS: { [key: string]: string } = {
   "Rubber Technology": "head_rubber@ldce.ac.in",
   "Textile Technology": "head_textile@ldce.ac.in"
 };
+
+export function getDepartmentHodEmail(department: string): string | undefined {
+  const normalizedDepartment = department.trim().replace(/\s+/g, ' ').toLowerCase();
+
+  if (normalizedDepartment === 'science & humanities') {
+    return SCIENCE_AND_HUMANITIES_HOD_EMAIL;
+  }
+
+  const matchingDepartment = Object.keys(DEPARTMENT_HOD_EMAILS).find(
+    (name) => name.trim().replace(/\s+/g, ' ').toLowerCase() === normalizedDepartment
+  );
+
+  return matchingDepartment ? DEPARTMENT_HOD_EMAILS[matchingDepartment] : undefined;
+}
