@@ -117,14 +117,19 @@ export async function GET(request: Request) {
     })
   }
 
-  const [items, count] = await Promise.all([
+  const [items, count, pending, reviewed, selected, rejected] = await Promise.all([
     prisma.application.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
-    prisma.application.count({ where })
+    prisma.application.count({ where }),
+    prisma.application.count({ where: { ...where, reviewed: false } }),
+    prisma.application.count({ where: { ...where, reviewed: true } }),
+    prisma.application.count({ where: { ...where, selectionStatus: 'Selected' } }),
+    prisma.application.count({ where: { ...where, selectionStatus: 'Rejected' } })
   ])
 
   return NextResponse.json({
     items,
     count,
+    stats: { total: count, pending, reviewed, selected, rejected },
     page,
     take,
     role: 'admin'

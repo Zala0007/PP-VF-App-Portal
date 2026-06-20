@@ -64,7 +64,13 @@ export default function AdminIndex() {
       
       if (appsRes.ok) {
         const data = await appsRes.json()
-        const applications = data.items || []
+        const applicationStats = data.stats || {
+          total: data.count || 0,
+          pending: 0,
+          reviewed: 0,
+          selected: 0,
+          rejected: 0,
+        }
         
         let totalVF = 0
         let colleges = 0
@@ -85,12 +91,12 @@ export default function AdminIndex() {
         }
         
         setStats({
-          total: applications.length,
-          pending: applications.filter((app: any) => !app.reviewed).length,
-          approved: applications.filter((app: any) => app.reviewed).length,
-          active: applications.filter((app: any) => app.reviewed).length,
-          selected: applications.filter((app: any) => app.selectionStatus === 'Selected').length,
-          rejected: applications.filter((app: any) => app.selectionStatus === 'Rejected').length,
+          total: applicationStats.total,
+          pending: applicationStats.pending,
+          approved: applicationStats.reviewed,
+          active: applicationStats.reviewed,
+          selected: applicationStats.selected,
+          rejected: applicationStats.rejected,
           visitingFaculty: totalVF,
           totalColleges: colleges,
         })
