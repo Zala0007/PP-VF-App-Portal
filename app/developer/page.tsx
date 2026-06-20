@@ -14,7 +14,7 @@ const profile = {
   location: 'Ahmedabad, Gujarat',
   photo: '/DSC_3747 - Copy (2)(3).JPG',
   linkedin: 'https://www.linkedin.com/in/vishvarajsinh-zala',
-  instagram: 'https://www.instagram.com/vishvarajsinh_zala_007',
+  instagram: 'https://www.instagram.com/vishvarajsinh_0007',
 }
 
 export default function DeveloperPage() {
