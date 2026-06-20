@@ -12,6 +12,7 @@ export default function AdminIndex() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [exportingAll, setExportingAll] = useState(false)
   const [exportingSelected, setExportingSelected] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
@@ -200,6 +201,42 @@ export default function AdminIndex() {
       alert(err.message || 'Failed to download selected candidates')
     } finally {
       setExportingSelected(false)
+    }
+  }
+
+  async function handleDownloadAllApplications() {
+    const token = sessionStorage.getItem('admin_token')
+
+    if (!token) {
+      setAuthenticated(false)
+      return
+    }
+
+    setExportingAll(true)
+
+    try {
+      const response = await fetch('/api/export-all-applications', {
+        headers: { 'x-admin-token': token }
+      })
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null)
+        throw new Error(result?.error || 'Failed to download applications')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `All_Applications_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(link)
+    } catch (err: any) {
+      alert(err.message || 'Failed to download applications')
+    } finally {
+      setExportingAll(false)
     }
   }
 
@@ -423,6 +460,32 @@ export default function AdminIndex() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + quickLinks.length * 0.1 }}
+              >
+                <button
+                  type="button"
+                  onClick={handleDownloadAllApplications}
+                  disabled={exportingAll}
+                  className="card card-hover group w-full text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg group-hover:shadow-glow transition-all duration-300">
+                      <FileDown className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
+                        {exportingAll ? 'Preparing Download...' : 'Download All Applications'}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Export every application currently present in the portal
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + quickLinks.length * 0.1 }}
               >
                 <button
                   type="button"
