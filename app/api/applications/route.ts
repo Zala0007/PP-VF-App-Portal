@@ -17,24 +17,23 @@ export async function POST(request: Request) {
     
     // Generate custom application ID
     const currentYear = new Date().getFullYear()
-    const typeCode = 'VF'
-    
-    // Get count of applications for this year and type
-    const yearStart = new Date(currentYear, 0, 1)
-    const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59)
-    
-    const count = await prisma.application.count({
+    const idPrefix = `VF${currentYear}`
+
+    // IDs for the current intake start at VF20260030. Use the highest existing
+    // sequence rather than a count so deleting an application cannot reuse an ID.
+    const currentYearApplications = await prisma.application.findMany({
       where: {
-        applicationType: body.applicationType,
-        createdAt: {
-          gte: yearStart,
-          lte: yearEnd
-        }
-      }
+        applicationId: { startsWith: idPrefix }
+      },
+      select: { applicationId: true }
     })
-    
-    const sequenceNumber = String(count + 1).padStart(4, '0')
-    const applicationId = `${currentYear}${typeCode}${sequenceNumber}`
+
+    const highestSequence = currentYearApplications.reduce((highest, application) => {
+      const sequence = Number(application.applicationId.slice(idPrefix.length))
+      return Number.isInteger(sequence) ? Math.max(highest, sequence) : highest
+    }, 29)
+    const sequenceNumber = String(highestSequence + 1).padStart(4, '0')
+    const applicationId = `${idPrefix}${sequenceNumber}`
     
     // Convert array fields to JSON strings
     const data = {
