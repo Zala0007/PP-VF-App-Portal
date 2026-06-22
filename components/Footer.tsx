@@ -176,7 +176,7 @@ export default function Footer() {
                 <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
               </a>
               <a 
-                href="https://www.instagram.com/vishvarajsinh_zala_007" 
+                href="https://www.instagram.com/vishvarajsinh__0007" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-7 h-7 rounded bg-pink-50 dark:bg-pink-950/40 border border-pink-100 dark:border-pink-800/50 hover:bg-pink-100 dark:hover:bg-pink-900/60 flex items-center justify-center transition-all hover:scale-110"
