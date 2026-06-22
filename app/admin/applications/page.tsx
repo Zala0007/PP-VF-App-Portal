@@ -21,6 +21,7 @@ type ViewerRole = 'admin' | 'hod'
 
 export default function ApplicationsList() {
   const [items, setItems] = useState<AppRow[]>([])
+  const [totalApplications, setTotalApplications] = useState(0)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -28,19 +29,40 @@ export default function ApplicationsList() {
   const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null)
   const [interviewCandidate, setInterviewCandidate] = useState<AppRow | null>(null)
 
-  const fetchApplications = () => {
+  const fetchApplications = async () => {
     const adminToken = sessionStorage.getItem('admin_token')
     const hodToken = sessionStorage.getItem('hod_token')
     const headers: Record<string, string> = adminToken
       ? { 'x-admin-token': adminToken }
       : { 'x-hod-token': hodToken || '' }
 
-    fetch('/api/applications?page=1&take=200', { headers })
-      .then((r) => r.json())
-      .then((json) => {
-        setItems(json.items || [])
-      })
-      .finally(() => setLoading(false))
+    try {
+      const pageSize = 200
+      const firstResponse = await fetch(`/api/applications?page=1&take=${pageSize}`, { headers })
+      if (!firstResponse.ok) throw new Error('Failed to fetch applications')
+
+      const firstPage = await firstResponse.json()
+      const total = Number(firstPage.count) || 0
+      setTotalApplications(total)
+      const pageCount = Math.ceil(total / pageSize)
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) =>
+          fetch(`/api/applications?page=${index + 2}&take=${pageSize}`, { headers }).then((response) => {
+            if (!response.ok) throw new Error('Failed to fetch applications')
+            return response.json()
+          })
+        )
+      )
+
+      setItems([
+        ...(firstPage.items || []),
+        ...remainingPages.flatMap((page) => page.items || [])
+      ])
+    } catch (error) {
+      console.error('Error fetching applications:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Check if user is authenticated
@@ -247,7 +269,7 @@ export default function ApplicationsList() {
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Applications</p>
-              <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">{items.length}</p>
+              <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">{totalApplications}</p>
             </div>
           </div>
         </motion.div>
