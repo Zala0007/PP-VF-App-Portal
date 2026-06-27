@@ -67,7 +67,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/apply" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Link
+                  href="/apply"
+                  aria-disabled="true"
+                  tabIndex={-1}
+                  onClick={(event) => event.preventDefault()}
+                  className="text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed pointer-events-none"
+                >
                   Apply Now
                 </Link>
               </li>

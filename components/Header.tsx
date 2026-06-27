@@ -16,6 +16,7 @@ const navItems = [
 ]
 
 const showVacancy = false
+const applicationsOpen = false
 
 export default function Header() {
   const pathname = usePathname()
@@ -71,7 +72,15 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-disabled={!applicationsOpen && item.href === '/apply'}
+                tabIndex={!applicationsOpen && item.href === '/apply' ? -1 : undefined}
+                onClick={(event) => {
+                  if (!applicationsOpen && item.href === '/apply') event.preventDefault()
+                }}
                 className={`relative font-medium transition-colors ${
+                  !applicationsOpen && item.href === '/apply'
+                    ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed pointer-events-none'
+                    :
                   pathname === item.href
                     ? 'text-primary-600 dark:text-blue-400'
                     : 'text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-blue-400'
@@ -122,8 +131,19 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
+                  aria-disabled={!applicationsOpen && item.href === '/apply'}
+                  tabIndex={!applicationsOpen && item.href === '/apply' ? -1 : undefined}
+                  onClick={(event) => {
+                    if (!applicationsOpen && item.href === '/apply') {
+                      event.preventDefault()
+                      return
+                    }
+                    setMobileMenuOpen(false)
+                  }}
                   className={`font-medium px-4 py-2 rounded-lg transition-colors ${
+                    !applicationsOpen && item.href === '/apply'
+                      ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed pointer-events-none'
+                      :
                     pathname === item.href
                       ? 'bg-primary-100 text-primary-700 dark:bg-white/10 dark:text-blue-300'
                       : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white'

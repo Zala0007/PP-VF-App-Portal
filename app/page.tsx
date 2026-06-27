@@ -100,6 +100,30 @@ export default function HomePage() {
 
   return (
     <div className="gradient-bg min-h-screen">
+      <div
+        className="overflow-hidden border-y border-orange-300 bg-orange-100 py-3 text-orange-900 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-100"
+        role="status"
+        aria-label="Application notice"
+      >
+        <motion.div
+          initial={{ x: '-50%' }}
+          animate={{ x: '0%' }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: 'linear'
+          }}
+          className="flex w-max whitespace-nowrap text-sm font-semibold sm:text-base"
+        >
+          <span className="inline-flex min-w-screen items-center justify-center px-16">
+            Important Notice: The acceptance of applications has currently been stopped. For further updates, kindly visit our official website.
+          </span>
+          <span className="inline-flex min-w-screen items-center justify-center px-16" aria-hidden="true">
+            Important Notice: The acceptance of applications has currently been stopped. For further updates, kindly visit our official website.
+          </span>
+        </motion.div>
+      </div>
+
       {/* Hero Section */}
       <section className="container-custom pt-32 pb-32">
         <motion.div
@@ -127,11 +151,16 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/apply">
+            <Link
+              href="/apply"
+              aria-disabled="true"
+              tabIndex={-1}
+              onClick={(event) => event.preventDefault()}
+              className="pointer-events-none"
+            >
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative btn-primary text-lg px-8 py-4 w-full sm:w-auto overflow-hidden group"
+                disabled
+                className="relative btn-primary text-lg px-8 py-4 w-full sm:w-auto overflow-hidden opacity-50 cursor-not-allowed"
               >
                 <span className="relative z-10">Apply Now</span>
                 <ArrowRight className="w-5 h-5 relative z-10" />
@@ -416,11 +445,16 @@ export default function HomePage() {
           </div>
 
           <div className="mt-16 flex justify-center">
-            <Link href="/apply">
+            <Link
+              href="/apply"
+              aria-disabled="true"
+              tabIndex={-1}
+              onClick={(event) => event.preventDefault()}
+              className="pointer-events-none"
+            >
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="btn-primary text-lg px-10 py-4"
+                disabled
+                className="btn-primary text-lg px-10 py-4 opacity-50 cursor-not-allowed"
               >
                 Start Your Application
                 <ArrowRight className="w-5 h-5" />
@@ -450,11 +484,16 @@ export default function HomePage() {
                   Join us in Shaping the Future of Engineering Education and Inspire the next Generation of Innovators
                 </p>
                 <div className="transform -rotate-[2deg]">
-                  <Link href="/apply">
+                  <Link
+                    href="/apply"
+                    aria-disabled="true"
+                    tabIndex={-1}
+                    onClick={(event) => event.preventDefault()}
+                    className="pointer-events-none"
+                  >
                     <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="bg-white text-orange-600 font-bold px-10 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 inline-flex items-center gap-2"
+                      disabled
+                      className="bg-white text-orange-600 font-bold px-10 py-4 rounded-xl shadow-lg inline-flex items-center gap-2 opacity-50 cursor-not-allowed"
                     >
                       Apply Now
                       <ArrowRight className="w-5 h-5" />
