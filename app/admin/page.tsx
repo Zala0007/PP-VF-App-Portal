@@ -248,6 +248,9 @@ export default function AdminIndex() {
           animate={{ opacity: 1, y: 0 }}
           className="container-custom max-w-md"
         >
+          <div className="mb-6 rounded-xl border-2 border-amber-500 bg-amber-50 px-5 py-4 text-center font-semibold text-amber-900 shadow-sm dark:bg-amber-950/40 dark:text-amber-200">
+            Kindly do not review any application. Portal is under maintenance.
+          </div>
           <div className="card">
             <div className="text-center mb-8">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-lg">
@@ -346,6 +349,9 @@ export default function AdminIndex() {
   return (
     <div className="gradient-bg min-h-screen py-12">
       <div className="container-custom">
+        <div className="mb-6 rounded-xl border-2 border-amber-500 bg-amber-50 px-5 py-4 text-center font-semibold text-amber-900 shadow-sm dark:bg-amber-950/40 dark:text-amber-200">
+          Kindly do not review any application. Portal is under maintenance.
+        </div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

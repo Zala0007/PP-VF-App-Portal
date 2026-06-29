@@ -232,6 +232,9 @@ export default function HodDashboard() {
         />
       )}
       <div className="container-custom">
+        <div className="mb-6 rounded-xl border-2 border-amber-500 bg-amber-50 px-5 py-4 text-center font-semibold text-amber-900 shadow-sm dark:bg-amber-950/40 dark:text-amber-200">
+          Kindly do not review any application. Portal is under maintenance.
+        </div>
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-semibold text-primary-600 dark:text-primary-400 mb-1">LDCE HOD Dashboard</p>
