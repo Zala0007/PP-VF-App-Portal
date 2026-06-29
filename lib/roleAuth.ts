@@ -91,16 +91,6 @@ export function normalizeDepartment(value: string) {
 export function getHodDepartmentAliases(hodDepartment: string) {
   const normalizedDepartment = normalizeDepartment(hodDepartment)
 
-  if (
-    normalizedDepartment === 'computer engineering' ||
-    normalizedDepartment === 'artificial intelligence and machine learning'
-  ) {
-    return [
-      'Computer Engineering',
-      'Artificial Intelligence and Machine Learning'
-    ]
-  }
-
   if (normalizedDepartment !== 'science & humanities') {
     return [hodDepartment]
   }
