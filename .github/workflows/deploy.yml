@@ -22,6 +22,7 @@ jobs:
             git reset --hard origin/main
             git pull origin main
             npm install
+            npx prisma migrate deploy
             npm run build
             pm2 restart vf-ldce
             sudo chmod o+x /home/vf_ldce

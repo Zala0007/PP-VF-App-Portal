@@ -15,6 +15,7 @@ type AppRow = {
   dateTimeOfSubmit?: string
   reviewed?: boolean
   selectionStatus?: string
+  statusDepartment?: string
 }
 
 type ViewerRole = 'admin' | 'hod'
@@ -28,6 +29,10 @@ export default function ApplicationsList() {
   const [filterDepartment, setFilterDepartment] = useState('')
   const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null)
   const [interviewCandidate, setInterviewCandidate] = useState<AppRow | null>(null)
+
+  function getRowKey(item: AppRow) {
+    return `${item.applicationId}::${item.statusDepartment || ''}`
+  }
 
   const fetchApplications = async () => {
     const adminToken = sessionStorage.getItem('admin_token')
@@ -98,8 +103,9 @@ export default function ApplicationsList() {
     }
   }, [])
 
-  const toggleReviewed = async (applicationId: string, currentStatus: boolean) => {
-    setUpdating(applicationId)
+  const toggleReviewed = async (item: AppRow) => {
+    const rowKey = getRowKey(item)
+    setUpdating(rowKey)
     const adminToken = sessionStorage.getItem('admin_token')
     const hodToken = sessionStorage.getItem('hod_token')
     const headers: Record<string, string> = adminToken
@@ -107,15 +113,25 @@ export default function ApplicationsList() {
       : { 'Content-Type': 'application/json', 'x-hod-token': hodToken || '' }
     
     try {
-      const response = await fetch(`/api/applications/${applicationId}`, {
+      const response = await fetch(`/api/applications/${item.applicationId}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ reviewed: !currentStatus })
+        body: JSON.stringify({
+          reviewed: !item.reviewed,
+          statusDepartment: item.statusDepartment
+        })
       })
 
       if (response.ok) {
-        setItems(items.map(item => 
-          item.applicationId === applicationId ? { ...item, reviewed: !currentStatus } : item
+        const result = await response.json()
+        setItems(items.map(currentItem =>
+          getRowKey(currentItem) === rowKey
+            ? {
+                ...currentItem,
+                reviewed: result.reviewed,
+                selectionStatus: result.selectionStatus
+              }
+            : currentItem
         ))
       }
     } catch (error) {
@@ -154,7 +170,8 @@ export default function ApplicationsList() {
       ? window.open('', '_blank')
       : null
 
-    setUpdating(item.applicationId)
+    const rowKey = getRowKey(item)
+    setUpdating(rowKey)
     const adminToken = sessionStorage.getItem('admin_token')
     const hodToken = sessionStorage.getItem('hod_token')
     const headers: Record<string, string> = adminToken
@@ -165,13 +182,18 @@ export default function ApplicationsList() {
       const response = await fetch(`/api/applications/${item.applicationId}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ selectionStatus })
+        body: JSON.stringify({
+          selectionStatus,
+          statusDepartment: item.statusDepartment
+        })
       })
 
       if (response.ok) {
         const result = await response.json()
         setItems(items.map(currentItem =>
-          currentItem.applicationId === item.applicationId ? { ...currentItem, selectionStatus } : currentItem
+          getRowKey(currentItem) === rowKey
+            ? { ...currentItem, selectionStatus }
+            : currentItem
         ))
 
         if (emailWindow && item.email && isCandidateStatus(selectionStatus)) {
@@ -285,7 +307,7 @@ export default function ApplicationsList() {
               <CheckCircle className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Reviewed</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Reviewed Department Decisions</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">{reviewedCount}</p>
             </div>
           </div>
@@ -302,7 +324,7 @@ export default function ApplicationsList() {
               <Calendar className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Pending Review</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Pending Department Reviews</p>
               <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{pendingCount}</p>
             </div>
           </div>
@@ -373,7 +395,7 @@ export default function ApplicationsList() {
               ) : (
                 filteredItems.map((item, index) => (
                   <motion.tr
-                  key={item.applicationId}
+                  key={getRowKey(item)}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.05 }}
@@ -392,15 +414,15 @@ export default function ApplicationsList() {
                   <td className="p-4">
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => toggleReviewed(item.applicationId, item.reviewed || false)}
-                        disabled={updating === item.applicationId}
+                        onClick={() => toggleReviewed(item)}
+                        disabled={updating === getRowKey(item)}
                         className={`flex w-fit items-center gap-2 px-3 py-1 rounded-full text-sm font-medium transition-all ${
                           item.reviewed
                             ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
                             : 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800'
-                        } ${updating === item.applicationId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${updating === getRowKey(item) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        {updating === item.applicationId ? (
+                        {updating === getRowKey(item) ? (
                           <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                         ) : item.reviewed ? (
                           <CheckCircle className="w-4 h-4" />
@@ -451,7 +473,7 @@ export default function ApplicationsList() {
                             : ''
                         }
                         onChange={(event) => updateSelectionStatus(item, event.target.value)}
-                        disabled={updating === item.applicationId || !item.reviewed}
+                        disabled={updating === getRowKey(item) || !item.reviewed}
                         className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-gray-100 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label={`Update selection status for ${item.name}`}
                         title={item.reviewed ? 'Update selection status' : 'Mark as reviewed to update selection status'}

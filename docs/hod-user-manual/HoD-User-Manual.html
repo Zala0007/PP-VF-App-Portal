@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HoD Quick User Guide</title>
+  <style>
+    @page { size: A4 landscape; margin: 13mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; color: #172033; font-size: 11pt; line-height: 1.4; }
+    h1, h2 { color: #173b6d; margin: 0 0 10px; }
+    h1 { font-size: 25pt; } h2 { font-size: 18pt; border-bottom: 2px solid #dbe8f7; padding-bottom: 5px; }
+    p { margin: 5px 0 9px; }
+    .cover { display: flex; align-items: center; justify-content: center; gap: 20px; text-align: left; margin-bottom: 12px; }
+    .cover img { width: 72px; margin: 0; }
+    .cover p { color: #5b6878; font-size: 13pt; }
+    .sheet { height: 176mm; overflow: hidden; page-break-after: always; }
+    .sheet:last-child { page-break-after: auto; }
+    .cover-sheet { display: grid; place-content: center; text-align: center; }
+    .cover-sheet .cover { display: block; text-align: center; margin: 0; }
+    .cover-sheet .cover img { width: 105px; margin: 0 auto 20px; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    .wide-left { grid-template-columns: 1.25fr .75fr; }
+    .panel { min-width: 0; }
+    .step { margin: 8px 0 12px; padding: 10px 12px; background: #edf5ff; border-left: 5px solid #2563eb; font-weight: 600; }
+    .figure { margin: 9px 0 14px; text-align: center; page-break-inside: avoid; }
+    .figure img { width: 100%; max-height: 128mm; object-fit: contain; object-position: top; border: 1px solid #cbd5e1; }
+    .caption { margin-top: 4px; color: #64748b; font-size: 8.5pt; }
+    .small-img img { max-height: 72mm; }
+    .medium-img img { max-height: 104mm; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { border: 1px solid #cbd5e1; padding: 9px; text-align: left; vertical-align: top; }
+    th { background: #e8f1fb; color: #173b6d; }
+    .note { margin: 10px 0; padding: 10px 12px; background: #fff7e6; border-left: 5px solid #d97706; }
+    .final { font-size: 12pt; font-weight: 600; color: #173b6d; }
+  </style>
+</head>
+<body>
+  <section class="sheet cover-sheet">
+    <div class="cover">
+      <img src="file:///C:/c/Visiting-Faculty-LDCE/public/ldce-logo.png" alt="LDCE logo">
+      <div><h1>HoD Quick User Guide</h1><p>Visiting Faculty Application Portal — visitingfaculty.ldcecollege.org</p></div>
+    </div>
+  </section>
+
+  <section class="sheet">
+    <h2>1. Open HoD Login</h2>
+    <div class="step">Open the website → scroll to the footer → click <strong>Admin Login</strong> → enter the HoD password → click <strong>Sign In</strong>.</div>
+    <div class="cols">
+      <div class="figure medium-img"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/00-footer-admin-login.png" alt="Admin Login in footer"><div class="caption">Click Admin Login (red box)</div></div>
+      <div class="figure medium-img"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/01-login.png" alt="HoD login"><div class="caption">Enter the password and click Sign In</div></div>
+    </div>
+  </section>
+
+  <section class="sheet">
+    <h2>2. Mark the Application Reviewed</h2>
+    <div class="step">Click the orange <strong>Pending</strong> button. It changes to green <strong>Reviewed</strong>.</div>
+    <div class="cols">
+      <div class="figure"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/02-dashboard.png" alt="Pending status"><div class="caption">Click Pending in the red box</div></div>
+      <div class="figure"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/02b-reviewed-actions.png" alt="Reviewed and actions"><div class="caption">Reviewed, View Details, and Select status</div></div>
+    </div>
+  </section>
+
+  <section class="sheet">
+    <div class="cols wide-left">
+      <div class="panel">
+        <h2>3. View Candidate Details</h2>
+        <div class="step">Under Actions, click <strong>View Details</strong> and check the complete application.</div>
+        <div class="figure"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/03-application-details.png" alt="Candidate application details"><div class="caption">Check education, experience, subjects, availability, and documents</div></div>
+      </div>
+      <div class="panel">
+        <h2>4. Select One Status</h2>
+        <div class="figure small-img"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/03b-all-status-options.png" alt="All three status options"><div class="caption">Choose one status</div></div>
+        <table>
+          <tr><th>Status</th><th>Meaning</th></tr>
+          <tr><td><strong>Rejected</strong></td><td>Not selected</td></tr>
+          <tr><td><strong>Shortlisted for Interview</strong></td><td>Enter interview details</td></tr>
+          <tr><td><strong>Selected</strong></td><td>Candidate selected</td></tr>
+        </table>
+        <div class="figure small-img"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/04-interview-details.png" alt="Interview details"><div class="caption">Interview details screen</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet">
+    <div class="cols">
+      <div class="panel">
+        <h2>5. Select Official Google Account</h2>
+        <div class="step">Select your <strong>official departmental email account</strong>, not a personal account.</div>
+        <div class="figure"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/05-google-account-chooser.png" alt="Google account chooser"><div class="caption">Select the official HoD account</div></div>
+      </div>
+      <div class="panel">
+        <h2>6. Review and Send</h2>
+        <div class="step">Edit the pre-filled email if needed, verify the details, and click <strong>Send</strong>.</div>
+        <div class="figure"><img src="file:///C:/c/Visiting-Faculty-LDCE/docs/hod-user-manual/images/06-gmail-draft.png" alt="Gmail draft"><div class="caption">Verify From, To, subject, and message</div></div>
+        <div class="note">The candidate receives the email after you click Gmail's <strong>Send</strong> button.</div>
+        <p class="final">Repeat these steps for all applications.</p>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

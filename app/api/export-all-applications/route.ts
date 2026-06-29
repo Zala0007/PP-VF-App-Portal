@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const applications = await prisma.application.findMany({
+      include: { departmentReviews: true },
       orderBy: { dateTimeOfSubmit: 'desc' }
     })
 
@@ -17,28 +18,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No applications found' }, { status: 404 })
     }
 
-    const rows = applications.map((application) => ({
-      'Application ID': application.applicationId,
-      'Name': application.name,
-      'Email': application.email,
-      'Contact Number': application.contactNo,
-      'College': application.college || 'N/A',
-      'Department(s)': parseDepartments(application.department).join(', ') || 'N/A',
-      'Application Type': application.applicationType,
-      'Reviewed': application.reviewed ? 'Yes' : 'No',
-      'Selection Status': application.selectionStatus,
-      'Preferred Subjects': application.preferredSubjects || 'N/A',
-      'Area of Interest': application.areaOfInterest || 'N/A',
-      'Resume File': application.resumeFile || 'N/A',
-      'Submitted Date': new Date(application.dateTimeOfSubmit).toLocaleString('en-IN')
-    }))
+    const rows = applications.flatMap((application) => {
+      const selectedDepartments = parseDepartments(application.department)
+
+      return selectedDepartments.map((department) => {
+        const departmentReview = application.departmentReviews.find(
+          (review) => review.department === department
+        )
+
+        return {
+          'Application ID': application.applicationId,
+          'Name': application.name,
+          'Email': application.email,
+          'Contact Number': application.contactNo,
+          'College': application.college || 'N/A',
+          'Selected Department(s)': selectedDepartments.join(', ') || 'N/A',
+          'Review Department': department,
+          'Application Type': application.applicationType,
+          'Reviewed': departmentReview?.reviewed ? 'Yes' : 'No',
+          'Selection Status': departmentReview?.selectionStatus || 'Pending',
+          'Preferred Subjects': application.preferredSubjects || 'N/A',
+          'Area of Interest': application.areaOfInterest || 'N/A',
+          'Resume File': application.resumeFile || 'N/A',
+          'Submitted Date': new Date(application.dateTimeOfSubmit).toLocaleString('en-IN')
+        }
+      })
+    })
 
     const workbook = XLSX.utils.book_new()
     const worksheet = XLSX.utils.json_to_sheet(rows)
     worksheet['!cols'] = [
       { wch: 16 }, { wch: 26 }, { wch: 32 }, { wch: 16 }, { wch: 36 },
-      { wch: 36 }, { wch: 22 }, { wch: 12 }, { wch: 20 }, { wch: 32 },
-      { wch: 32 }, { wch: 42 }, { wch: 22 }
+      { wch: 42 }, { wch: 36 }, { wch: 22 }, { wch: 12 }, { wch: 20 },
+      { wch: 32 }, { wch: 32 }, { wch: 42 }, { wch: 22 }
     ]
 
     XLSX.utils.book_append_sheet(workbook, worksheet, 'All Applications')

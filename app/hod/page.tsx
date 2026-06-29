@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, CheckCircle, Eye, LogOut, Mail, Search, Users, XCircle } from 'lucide-react'
+import { Calendar, CheckCircle, Eye, FileDown, LogOut, Mail, Search, Users, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { buildCandidateStatusEmailDraft, isCandidateStatus, type InterviewDetails } from '@/lib/candidateStatusEmail'
 import InterviewDetailsModal from '@/components/InterviewDetailsModal'
@@ -17,6 +17,7 @@ type AppRow = {
   dateTimeOfSubmit?: string
   reviewed?: boolean
   selectionStatus?: string
+  statusDepartment?: string
 }
 
 export default function HodDashboard() {
@@ -27,6 +28,8 @@ export default function HodDashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
   const [interviewCandidate, setInterviewCandidate] = useState<AppRow | null>(null)
+  const [exportingApplications, setExportingApplications] = useState(false)
+  const [exportingSelected, setExportingSelected] = useState(false)
 
   useEffect(() => {
     const token = sessionStorage.getItem('hod_token')
@@ -80,18 +83,62 @@ export default function HodDashboard() {
     window.location.href = '/admin'
   }
 
-  async function toggleReviewed(applicationId: string, currentStatus: boolean) {
-    setUpdating(applicationId)
+  async function downloadDepartmentExport(
+    url: string,
+    fallbackFilename: string,
+    setExporting: (value: boolean) => void
+  ) {
+    const token = sessionStorage.getItem('hod_token')
+    setExporting(true)
+
+    try {
+      const response = await fetch(url, {
+        headers: { 'x-hod-token': token || '' }
+      })
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null)
+        throw new Error(result?.error || 'Failed to download file')
+      }
+
+      const blob = await response.blob()
+      const disposition = response.headers.get('Content-Disposition') || ''
+      const filenameMatch = disposition.match(/filename=\"?([^\";]+)\"?/i)
+      const objectUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = filenameMatch?.[1] || fallbackFilename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(objectUrl)
+    } catch (error: any) {
+      alert(error.message || 'Failed to download file')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  function getRowKey(item: AppRow) {
+    return `${item.applicationId}::${item.statusDepartment || ''}`
+  }
+
+  async function toggleReviewed(item: AppRow) {
+    const rowKey = getRowKey(item)
+    setUpdating(rowKey)
     const token = sessionStorage.getItem('hod_token')
 
     try {
-      const response = await fetch(`/api/hod/applications/${applicationId}`, {
+      const response = await fetch(`/api/hod/applications/${item.applicationId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'x-hod-token': token || ''
         },
-        body: JSON.stringify({ reviewed: !currentStatus })
+        body: JSON.stringify({
+          reviewed: !item.reviewed,
+          statusDepartment: item.statusDepartment
+        })
       })
 
       const result = await response.json()
@@ -101,10 +148,15 @@ export default function HodDashboard() {
       }
 
       setItems((currentItems) =>
-        currentItems.map((item) =>
-          item.applicationId === applicationId
-            ? { ...item, reviewed: result.reviewed }
-            : item
+        currentItems.map((currentItem) =>
+          currentItem.applicationId === item.applicationId &&
+          currentItem.statusDepartment === item.statusDepartment
+            ? {
+                ...currentItem,
+                reviewed: result.reviewed,
+                selectionStatus: result.selectionStatus
+              }
+            : currentItem
         )
       )
     } catch (err: any) {
@@ -127,7 +179,8 @@ export default function HodDashboard() {
       ? window.open('', '_blank')
       : null
 
-    setUpdating(item.applicationId)
+    const rowKey = getRowKey(item)
+    setUpdating(rowKey)
     const token = sessionStorage.getItem('hod_token')
 
     try {
@@ -137,7 +190,10 @@ export default function HodDashboard() {
           'Content-Type': 'application/json',
           'x-hod-token': token || ''
         },
-        body: JSON.stringify({ selectionStatus })
+        body: JSON.stringify({
+          selectionStatus,
+          statusDepartment: item.statusDepartment
+        })
       })
 
       const result = await response.json()
@@ -149,6 +205,7 @@ export default function HodDashboard() {
       setItems((currentItems) =>
         currentItems.map((currentItem) =>
           currentItem.applicationId === item.applicationId
+          && currentItem.statusDepartment === item.statusDepartment
             ? { ...currentItem, selectionStatus: result.selectionStatus }
             : currentItem
         )
@@ -245,13 +302,45 @@ export default function HodDashboard() {
               Department-wise visiting faculty applications
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-medium"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                downloadDepartmentExport(
+                  '/api/hod/export-applications',
+                  'Department_Applications.xlsx',
+                  setExportingApplications
+                )
+              }
+              disabled={exportingApplications}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors font-medium disabled:opacity-50"
+            >
+              <FileDown className="w-4 h-4" />
+              {exportingApplications ? 'Preparing...' : 'Download Applications'}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                downloadDepartmentExport(
+                  '/api/hod/export-selected-candidates',
+                  'Department_Selected_Candidates.xlsx',
+                  setExportingSelected
+                )
+              }
+              disabled={exportingSelected}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors font-medium disabled:opacity-50"
+            >
+              <FileDown className="w-4 h-4" />
+              {exportingSelected ? 'Preparing...' : 'Download Selected'}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -324,7 +413,7 @@ export default function HodDashboard() {
                 ) : (
                   filteredItems.map((item, index) => (
                     <motion.tr
-                      key={item.applicationId}
+                      key={getRowKey(item)}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: index * 0.03 }}
@@ -342,15 +431,15 @@ export default function HodDashboard() {
                         <div className="flex flex-col gap-2">
                           <button
                             type="button"
-                            onClick={() => toggleReviewed(item.applicationId, item.reviewed || false)}
-                            disabled={updating === item.applicationId}
+                            onClick={() => toggleReviewed(item)}
+                            disabled={updating === getRowKey(item)}
                             className={`inline-flex w-fit items-center gap-2 px-3 py-1 rounded-full text-sm font-medium transition-all ${
                             item.reviewed
                               ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
                               : 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800'
-                          } ${updating === item.applicationId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          } ${updating === getRowKey(item) ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
-                            {updating === item.applicationId ? (
+                            {updating === getRowKey(item) ? (
                               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                             ) : item.reviewed ? (
                               <CheckCircle className="w-4 h-4" />
@@ -401,7 +490,7 @@ export default function HodDashboard() {
                                 : ''
                             }
                             onChange={(event) => updateSelectionStatus(item, event.target.value)}
-                            disabled={updating === item.applicationId || !item.reviewed}
+                            disabled={updating === getRowKey(item) || !item.reviewed}
                             className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-gray-100 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label={`Update selection status for ${item.name}`}
                             title={item.reviewed ? 'Update selection status' : 'Mark as reviewed to update selection status'}

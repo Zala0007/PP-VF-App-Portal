@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma'
-import { applicationBelongsToDepartment, LDCE_COLLEGE_NAME, parseDepartments, verifyHodToken } from '@/lib/roleAuth'
+import { applicationBelongsToDepartment, getApplicationReviewDepartments, getHodDepartmentAliases, LDCE_COLLEGE_NAME, verifyHodToken } from '@/lib/roleAuth'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -15,15 +15,39 @@ export async function GET(request: Request) {
       where: {
         college: LDCE_COLLEGE_NAME
       },
+      include: {
+        departmentReviews: {
+          where: {
+            department: { in: getHodDepartmentAliases(credential.department) }
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     })
 
     const items = applications
       .filter((application) => applicationBelongsToDepartment(application.department, credential.department))
-      .map((application) => ({
-        ...application,
-        department: parseDepartments(application.department)
-      }))
+      .flatMap((application) => {
+        const reviewDepartments = getApplicationReviewDepartments(
+          application.department,
+          credential.department
+        )
+        const { departmentReviews, ...applicationData } = application
+
+        return reviewDepartments.map((reviewDepartment) => {
+          const departmentReview = departmentReviews.find(
+            (review) => review.department === reviewDepartment
+          )
+
+          return {
+            ...applicationData,
+            department: [reviewDepartment],
+            statusDepartment: reviewDepartment,
+            reviewed: departmentReview?.reviewed ?? false,
+            selectionStatus: departmentReview?.selectionStatus ?? 'Pending'
+          }
+        })
+      })
 
     return NextResponse.json({
       items,

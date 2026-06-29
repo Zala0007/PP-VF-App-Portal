@@ -1,13 +1,11 @@
 import prisma from '../../../lib/prisma'
 import { NextResponse } from 'next/server'
 import { sendApplicationReceivedEmail, sendApplicationToDepartmentHods } from '@/lib/email'
-import { applicationBelongsToDepartment, LDCE_COLLEGE_NAME, verifyAdminToken, verifyHodToken } from '@/lib/roleAuth'
+import { applicationBelongsToDepartment, getApplicationReviewDepartments, getHodDepartmentAliases, LDCE_COLLEGE_NAME, parseDepartments, verifyAdminToken, verifyHodToken } from '@/lib/roleAuth'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    console.log('POST /api/applications body:', body)
-
     if (!body.resumeFile) {
       return NextResponse.json(
         { error: 'Resume upload is required' },
@@ -44,7 +42,27 @@ export async function POST(request: Request) {
       department: body.department ? JSON.stringify(body.department) : null
     }
     
-    const created = await prisma.application.create({ data })
+    const selectedDepartments: string[] = Array.isArray(body.department)
+      ? body.department.filter((department: unknown) => typeof department === 'string') as string[]
+      : []
+
+    const created = await prisma.$transaction(async (transaction) => {
+      const application = await transaction.application.create({ data })
+
+      if (selectedDepartments.length > 0) {
+        await transaction.applicationDepartmentReview.createMany({
+          data: [...new Set(selectedDepartments)].map((department) => ({
+            applicationId: application.applicationId,
+            department,
+            reviewed: false,
+            selectionStatus: 'Pending'
+          })),
+          skipDuplicates: true
+        })
+      }
+
+      return application
+    })
     
     // Send confirmation email to applicant
     try {
@@ -106,10 +124,33 @@ export async function GET(request: Request) {
     const filteredItems = allItems.filter((application) =>
       applicationBelongsToDepartment(application.department, hodCredential.department)
     )
+    const departmentReviews = await prisma.applicationDepartmentReview.findMany({
+      where: {
+        department: { in: getHodDepartmentAliases(hodCredential.department) },
+        applicationId: { in: filteredItems.map((application) => application.applicationId) }
+      }
+    })
+    const itemsWithDepartmentStatus = filteredItems.flatMap((application) =>
+      getApplicationReviewDepartments(application.department, hodCredential.department)
+        .map((reviewDepartment) => {
+          const departmentReview = departmentReviews.find(
+            (review) =>
+              review.applicationId === application.applicationId &&
+              review.department === reviewDepartment
+          )
+
+          return {
+            ...application,
+            statusDepartment: reviewDepartment,
+            reviewed: departmentReview?.reviewed ?? false,
+            selectionStatus: departmentReview?.selectionStatus ?? 'Pending'
+          }
+        })
+    )
 
     return NextResponse.json({
-      items: filteredItems.slice(skip, skip + take),
-      count: filteredItems.length,
+      items: itemsWithDepartmentStatus.slice(skip, skip + take),
+      count: itemsWithDepartmentStatus.length,
       page,
       take,
       role: 'hod',
@@ -117,14 +158,46 @@ export async function GET(request: Request) {
     })
   }
 
-  const [items, count, pending, reviewed, selected, rejected] = await Promise.all([
-    prisma.application.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
+  const [applications, count, pending, reviewed, selected, rejected] = await Promise.all([
+    prisma.application.findMany({
+      where,
+      include: { departmentReviews: true },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take
+    }),
     prisma.application.count({ where }),
-    prisma.application.count({ where: { ...where, reviewed: false } }),
-    prisma.application.count({ where: { ...where, reviewed: true } }),
-    prisma.application.count({ where: { ...where, selectionStatus: 'Selected' } }),
-    prisma.application.count({ where: { ...where, selectionStatus: 'Rejected' } })
+    prisma.applicationDepartmentReview.count({
+      where: { reviewed: false, application: where }
+    }),
+    prisma.applicationDepartmentReview.count({
+      where: { reviewed: true, application: where }
+    }),
+    prisma.applicationDepartmentReview.count({
+      where: { selectionStatus: 'Selected', application: where }
+    }),
+    prisma.applicationDepartmentReview.count({
+      where: { selectionStatus: 'Rejected', application: where }
+    })
   ])
+  const items = applications.flatMap((application) => {
+    const selectedDepartments = parseDepartments(application.department)
+    const { departmentReviews, ...applicationData } = application
+
+    return selectedDepartments.map((statusDepartment) => {
+      const departmentReview = departmentReviews.find(
+        (review) => review.department === statusDepartment
+      )
+
+      return {
+        ...applicationData,
+        department: [statusDepartment],
+        statusDepartment,
+        reviewed: departmentReview?.reviewed ?? false,
+        selectionStatus: departmentReview?.selectionStatus ?? 'Pending'
+      }
+    })
+  })
 
   return NextResponse.json({
     items,

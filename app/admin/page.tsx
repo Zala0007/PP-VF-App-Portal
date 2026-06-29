@@ -311,10 +311,10 @@ export default function AdminIndex() {
 
   const statsData = [
     { icon: FileText, label: 'Total Applications', value: stats.total.toString(), color: 'from-blue-500 to-blue-600' },
-    { icon: Clock, label: 'Pending Review', value: stats.pending.toString(), color: 'from-amber-500 to-amber-600' },
-    { icon: CheckCircle, label: 'Reviewed', value: stats.approved.toString(), color: 'from-green-500 to-green-600' },
-    { icon: Users, label: 'Selected', value: stats.selected.toString(), color: 'from-emerald-500 to-emerald-600' },
-    { icon: XCircle, label: 'Rejected', value: stats.rejected.toString(), color: 'from-red-500 to-red-600' },
+    { icon: Clock, label: 'Pending Department Reviews', value: stats.pending.toString(), color: 'from-amber-500 to-amber-600' },
+    { icon: CheckCircle, label: 'Reviewed Department Decisions', value: stats.approved.toString(), color: 'from-green-500 to-green-600' },
+    { icon: Users, label: 'Selected Department Decisions', value: stats.selected.toString(), color: 'from-emerald-500 to-emerald-600' },
+    { icon: XCircle, label: 'Rejected Department Decisions', value: stats.rejected.toString(), color: 'from-red-500 to-red-600' },
     ...(showVacancy
       ? [
           { icon: Users, label: 'Visiting Faculty', value: stats.visitingFaculty.toString(), color: 'from-pink-500 to-pink-600' }

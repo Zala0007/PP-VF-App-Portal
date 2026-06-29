@@ -88,8 +88,20 @@ export function normalizeDepartment(value: string) {
   return value.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
-function getHodDepartmentAliases(hodDepartment: string) {
-  if (normalizeDepartment(hodDepartment) !== 'science & humanities') {
+export function getHodDepartmentAliases(hodDepartment: string) {
+  const normalizedDepartment = normalizeDepartment(hodDepartment)
+
+  if (
+    normalizedDepartment === 'computer engineering' ||
+    normalizedDepartment === 'artificial intelligence and machine learning'
+  ) {
+    return [
+      'Computer Engineering',
+      'Artificial Intelligence and Machine Learning'
+    ]
+  }
+
+  if (normalizedDepartment !== 'science & humanities') {
     return [hodDepartment]
   }
 
@@ -99,6 +111,15 @@ function getHodDepartmentAliases(hodDepartment: string) {
     'Maths - Science & Humanities (General) Department',
     'English - Science & Humanities (General) Department'
   ]
+}
+
+export function getApplicationReviewDepartments(applicationDepartment: string | null, hodDepartment: string) {
+  const selectedDepartments = parseDepartments(applicationDepartment)
+  const managedDepartments = getHodDepartmentAliases(hodDepartment).map(normalizeDepartment)
+
+  return selectedDepartments.filter((department) =>
+    managedDepartments.includes(normalizeDepartment(department))
+  )
 }
 
 export function applicationBelongsToDepartment(applicationDepartment: string | null, hodDepartment: string) {

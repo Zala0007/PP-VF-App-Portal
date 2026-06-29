@@ -26,19 +26,21 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const applications = await prisma.application.findMany({
+    const selectedReviews = await prisma.applicationDepartmentReview.findMany({
       where: { selectionStatus: 'Selected' },
+      include: { application: true },
       orderBy: [
         { department: 'asc' },
-        { name: 'asc' }
+        { application: { name: 'asc' } }
       ]
     })
 
-    if (applications.length === 0) {
+    if (selectedReviews.length === 0) {
       return NextResponse.json({ error: 'No selected candidates found' }, { status: 404 })
     }
 
-    const rows = applications.map((app) => {
+    const rows = selectedReviews.map((review) => {
+      const app = review.application
       const departments = parseDepartments(app.department)
       const educationQualifications = parseJsonArray(app.educationQualifications)
       const experienceEntries = parseJsonArray(app.experienceEntries)
@@ -57,8 +59,9 @@ export async function GET(request: NextRequest) {
         'Email': app.email,
         'Contact Number': app.contactNo,
         'College': app.college || 'N/A',
-        'Department(s)': departments.length > 0 ? departments.join(', ') : 'N/A',
-        'Selection Status': app.selectionStatus,
+        'Selected Department(s)': departments.length > 0 ? departments.join(', ') : 'N/A',
+        'Selected By Department': review.department,
+        'Selection Status': review.selectionStatus,
         'Application Type': app.applicationType,
         'Preferred Subjects': app.preferredSubjects || 'N/A',
         'Area of Interest': app.areaOfInterest || 'N/A',
